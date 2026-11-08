@@ -127,3 +127,28 @@ signed-in account. Success returns `{ success: true, signInRequired: true }` and
 revokes that account's sessions. Passwords are bcrypt-hashed; per-request
 credential checks also invalidate sessions on another running API instance.
 The technician profile uses the same password rules and signs out after success.
+
+## Azure Email API
+
+After deploying API support, configure App Service application settings:
+
+- `MAIL_MODE=smtp` (existing external-delivery queue mode, retained for schema compatibility)
+- `MAIL_PROVIDER=azure` (uses HTTPS Azure Email API instead of SMTP)
+- `AZURE_COMMUNICATION_CONNECTION_STRING` from the connected Communication Service's Keys page
+- `MAIL_FROM` equal to the bare verified sender address shown by the connected domain
+
+Keep connection strings private in App Service settings, never frontend variables,
+source, logs or screenshots. No Entra app registration or SMTP username is needed
+for connection-string authentication. The existing local Mailpit and SMTP modes
+remain available; omit MAIL_PROVIDER or use smtp for the old SMTP provider.
+No database migration is needed. Local/disabled queued messages are not replayed.
+Review any existing external (`smtp`) pending messages before enabling this provider,
+because they share the external-delivery queue. Provider success means acceptance,
+not proof of inbox delivery. An ambiguous network failure can cause duplicate mail
+when the outbox retries. Credentials/provider transcripts are never logged.
+
+Existing notification scope is technician assignment/confirmation and staff invites.
+Register a test customer using your own real inbox, create a fresh booking and assign
+it through Admin, then check Admin email status and the inbox/spam folder. These
+configuration changes alone do not add cancellation/completion mail or an arbitrary
+Admin compose action. Do not send a historical demo backlog to external recipients.

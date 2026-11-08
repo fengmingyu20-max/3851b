@@ -1,6 +1,7 @@
 import { bookingReference } from './booking-reference.mjs';
 import nodemailer from 'nodemailer';
 import { randomUUID } from 'node:crypto';
+import { createAzureMailTransport } from './azure-email.mjs';
 
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 export function mailMode() { return ['smtp', 'disabled'].includes(process.env.MAIL_MODE) ? process.env.MAIL_MODE : 'local'; }
@@ -59,6 +60,9 @@ export async function enqueueStaffInvitationEmail(connection,{invitationId,roleN
 export function createMailTransport(mode = mailMode()) {
   if (mode === 'disabled') return null;
   if (mode === 'local') return nodemailer.createTransport({ host: '127.0.0.1', port: Number(process.env.LOCAL_SMTP_PORT || 1025), secure: false, ignoreTLS: true, connectionTimeout: 5000, socketTimeout: 15000, disableFileAccess: true, disableUrlAccess: true });
+  // Keep the existing external-mail queue mode; the provider selects its protocol.
+  if (process.env.MAIL_PROVIDER === 'azure') return createAzureMailTransport();
+  if (process.env.MAIL_PROVIDER && process.env.MAIL_PROVIDER !== 'smtp') throw Object.assign(new Error('Unsupported mail provider.'), { code: 'MAIL_PROVIDER_CONFIG' });
   if (!process.env.SMTP_HOST || !process.env.MAIL_FROM) throw new Error('Configure SMTP_HOST and MAIL_FROM for external mail.');
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 587), secure: process.env.SMTP_SECURE === 'true',
@@ -69,7 +73,7 @@ export function createMailTransport(mode = mailMode()) {
 }
 
 // Claim one committed message at a time, then release the DB lock before SMTP.
-// A stable Message-ID is reused on retries; SMTP cannot guarantee exactly-once delivery after a connection loss.
+// SMTP reuses Message-ID. Neither provider guarantees exactly-once delivery after an ambiguous connection loss.
 export async function deliverPendingBookingEmails(pool, { transport, mode = mailMode(), limit = 10 } = {}) {
   if (mode === 'disabled') return 0;
   const sender = transport || createMailTransport(mode);
