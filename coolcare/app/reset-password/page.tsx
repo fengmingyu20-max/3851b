@@ -10,7 +10,7 @@ import { apiFetch } from '@/components/public-site/api';
 
 export default function ResetPasswordPage() {
   const token = useRef('');
-  const initialized = useRef(false);
+  const version = useRef(0);
   const [ready, setReady] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -18,18 +18,28 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-    const fragment = window.location.hash.slice(1);
-    if (/^[a-f0-9]{64}$/.test(fragment)) token.current = fragment;
-    else setError('This reset link is incomplete. Request a new link from the sign-in page.');
-    // Keep the token in memory only, removing it from the address bar/history.
-    window.history.replaceState(window.history.state, '', window.location.pathname);
-    setReady(true);
+    const readLink = () => {
+      const fragment = window.location.hash.slice(1);
+      if (/^[a-f0-9]{64}$/.test(fragment)) {
+        token.current = fragment; version.current++;
+        setPassword(''); setConfirmation(''); setError(''); setSuccess(false); setSaving(false);
+      } else if (fragment || !token.current) {
+        token.current = ''; version.current++;
+        setError('This reset link is incomplete. Request a new link from the sign-in page.');
+        setSuccess(false); setSaving(false);
+      }
+      // Keep the token in memory only, removing it from the address bar/history.
+      window.history.replaceState(window.history.state, '', window.location.pathname);
+      setReady(true);
+    };
+    readLink();
+    window.addEventListener('hashchange', readLink);
+    return () => window.removeEventListener('hashchange', readLink);
   }, []);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError('');
     if (password !== confirmation) { setError('Passwords do not match.'); return; }
+    const requestVersion = version.current;
     setSaving(true);
     try {
       const response = await apiFetch('/api/public/account/reset-password', {
@@ -37,10 +47,11 @@ export default function ResetPasswordPage() {
         body: JSON.stringify({ token: token.current, newPassword: password, confirmPassword: confirmation }),
       });
       const data = await response.json().catch(() => null);
+      if (version.current !== requestVersion) return;
       if (!response.ok || !data?.success) { setError(data?.error || 'Unable to reset your password. Please try again.'); return; }
       token.current = ''; setPassword(''); setConfirmation(''); setSuccess(true);
-    } catch { setError('Unable to connect. Check your connection and try again.'); }
-    finally { setSaving(false); }
+    } catch { if (version.current === requestVersion) setError('Unable to connect. Check your connection and try again.'); }
+    finally { if (version.current === requestVersion) setSaving(false); }
   }
   return <main className="min-h-screen bg-[linear-gradient(145deg,#eef5ff,#f3fffd)] px-4 py-10 sm:py-16">
     <div className="mx-auto max-w-lg">
