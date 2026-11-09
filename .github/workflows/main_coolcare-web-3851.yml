@@ -79,7 +79,7 @@ jobs:
           MAIL_MODE: local
         run: |
           npm ci --ignore-scripts
-          node --test tests/registration-email.integration.mjs tests/password-reset.integration.mjs
+          node --test tests/registration-email.integration.mjs tests/password-reset.integration.mjs tests/booking-change-email.integration.mjs
 
   deploy:
     runs-on: ubuntu-latest

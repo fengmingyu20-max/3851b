@@ -528,7 +528,7 @@ test('confirmation and automatic dispatch are atomic, rotate conflict-free techn
     AND event_type IN ('booking.confirmed','booking.assigned','booking.rejected')`,
       [first.bookingId, freed.bookingId],
     );
-    assert.equal(Number(mailCount.count), 1);
+    assert.equal(Number(mailCount.count), 2);
     await assert.rejects(
       updateTechnician(db, secondDispatch.technician.technicianId, {
         availability: 'On Leave',

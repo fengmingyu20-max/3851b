@@ -147,7 +147,8 @@ because they share the external-delivery queue. Provider success means acceptanc
 not proof of inbox delivery. An ambiguous network failure can cause duplicate mail
 when the outbox retries. Credentials/provider transcripts are never logged.
 
-Existing notification scope is technician assignment/confirmation and staff invites.
+Notification scope includes technician assignment/confirmation, staff invites and
+booking changes documented below.
 Register a test customer using your own real inbox, create a fresh booking and assign
 it through Admin, then check Admin email status and the inbox/spam folder. These
 configuration changes alone do not add cancellation/completion mail or an arbitrary
@@ -241,3 +242,31 @@ Test with your own active account and real inbox, or Mailpit locally. Requesting
 opening the link must leave the old password working. After valid reset, the old
 password/sessions must fail, the new password must work and the link must fail on
 reuse. CI tests use a disposable MySQL database and captured mail, never real emails.
+
+
+## Booking change mail
+
+Existing Azure mail settings and booking_email_outbox are reused. No new database
+migration or secret is needed. Only new successful actions queue these messages:
+
+- Customer cancellation: cancellation of this booking appointment, not an entire plan.
+- Customer/admin reschedule: original and new appointment, with pending confirmation
+  or awaiting-dispatch wording matching the committed state.
+- Admin rejection: public rejection reason; a later actual public-reason edit sends
+  a separately identified update. No-op reason edits send nothing.
+- Annual visit rebooking: preserved booking reference, previous/new dates and awaiting
+  confirmation; no claim that a cancelled plan or refunded payment was restored.
+- Return invite: asks the customer to choose a date; no appointment is confirmed.
+- Return requested: receipt of the customer's chosen date/time, still pending Admin.
+- Return scheduled: the final confirmed date/time after Admin dispatch, including
+  its actual service duration. Re-invites and changed selections get their own events.
+
+All messages go to the booking customer's account email, using English date labels
+and Singapore time. The snapshot is saved with the business transaction. The worker
+only reads committed rows. Application request retries/no-op saves do not create
+another email; separate real changes do. Delivery failure preserves committed order
+state and retries the same message. Provider/network ambiguity can still cause
+redelivery; neither SMTP nor the Azure adapter promises exactly-once inbox delivery.
+Admin order email history and retry controls include all the above types. No historic
+changes are backfilled and no local/disabled backlog is converted to external mail.
+Tests capture transport calls against a disposable MySQL DB and send no real mail.

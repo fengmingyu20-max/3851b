@@ -1,3 +1,4 @@
+import { enqueueBookingLifecycleEmail } from './booking-email.mjs';
 import {assignmentTeam,bookingTeam,staffingBooking,selectDispatchTeam,saveAssignmentTeam} from './teams.mjs';
 import {memberSql} from './teams.mjs';
 import { withBookingReference } from './booking-reference.mjs';
@@ -134,7 +135,7 @@ export async function updateReturn(pool, role, userId, jobId, raw) {
       [hint.booking_id],
     );
     const [[w]] = await c.execute(
-      `SELECT w.*,DATE_FORMAT(w.appointment_date,'%Y-%m-%d') AS serviceDate,b.booking_status,b.estimated_duration_minutes,b.required_technicians,b.travel_buffer_minutes,b.traffic_note,cu.user_id AS customerUser FROM work_order w JOIN booking b ON b.booking_id=w.booking_id JOIN customer cu ON cu.customer_id=b.customer_id WHERE w.job_id=? FOR UPDATE`,
+      `SELECT w.*,DATE_FORMAT(w.appointment_date,'%Y-%m-%d') AS serviceDate,b.booking_status,b.slot_start,b.slot_end,b.preferred_time_slot,b.estimated_duration_minutes,b.required_technicians,b.travel_buffer_minutes,b.traffic_note,cu.user_id AS customerUser FROM work_order w JOIN booking b ON b.booking_id=w.booking_id JOIN customer cu ON cu.customer_id=b.customer_id WHERE w.job_id=? FOR UPDATE`,
       [jobId],
     );
     if (role === 'customer' && w.customerUser !== userId)
@@ -294,6 +295,12 @@ export async function updateReturn(pool, role, userId, jobId, raw) {
           'Return visit confirmed and dispatched.',
         ],
       );
+    const mailEvent = {invite:'return.invited',choose:'return.requested',dispatch:'return.scheduled'}[d.action];
+    await enqueueBookingLifecycleEmail(c,w.booking_id,mailEvent,{
+      eventKey:`${mailEvent}:${jobId}:${d.requestId}`,
+      previousAppointment:{date:w.serviceDate,start:w.slot_start,end:w.slot_end,timeSlot:w.preferred_time_slot},
+      ...(d.action==='invite'?{customerMessage:notes}:{appointment:{date,start,end}}),
+    });
     await c.commit();
     return result;
   } catch (e) {

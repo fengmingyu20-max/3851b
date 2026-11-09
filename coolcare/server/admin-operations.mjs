@@ -14,7 +14,7 @@ import express from 'express';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { AppError, idSchema } from './inventory.mjs';
-import { enqueueBookingLifecycleEmail } from './booking-email.mjs';
+import { enqueueBookingLifecycleEmail, bookingAppointment } from './booking-email.mjs';
 import { inviteStaff } from './staff-invitations.mjs';
 import {
   assertAddressBookingLimit,
@@ -258,6 +258,7 @@ export async function rejectBooking(pool, actor, bookingId, raw) {
       VALUES (?,'Submitted','Rejected',?,?)`,
       [bookingId, actor.userId, data.reason],
     );
+    await enqueueBookingLifecycleEmail(connection,bookingId,'booking.rejected',{eventKey:`booking.rejected:${bookingId}:${data.requestId}`,reason:data.reason});
     const result = { bookingId, status: 'Rejected', reason: data.reason, returnedPoints: returnedPoints || 0 };
     await finishOperation(connection, {
       requestId: data.requestId,
@@ -315,6 +316,7 @@ export async function editRejectionReason(pool, actor, bookingId, raw) {
       VALUES (?,'Rejected','Rejected',?,?)`,
       [bookingId, actor.userId, 'Rejection reason updated: ' + data.reason],
     );
+    if(data.reason!==booking.rejection_reason) await enqueueBookingLifecycleEmail(connection,bookingId,'booking.rejection_updated',{eventKey:`booking.rejection_updated:${bookingId}:${data.requestId}`,reason:data.reason});
     const result = {
       bookingId,
       reason: data.reason,
@@ -747,7 +749,7 @@ export async function rescheduleAdminBooking(pool, actor, bookingId, raw) {
         data.preferredDate > String(subscription.end_date).slice(0, 10)
       )
         throw new AppError(
-          'Choose a date within the customer’s active membership period.',
+          'Choose a date within the customer��s active membership period.',
           409,
         );
     }
@@ -816,6 +818,8 @@ export async function rescheduleAdminBooking(pool, actor, bookingId, raw) {
         `Appointment changed from ${oldDate} ${oldTimeSlot} to ${data.preferredDate} ${slot.code}.${wasAssigned ? ` Previous assignment released; awaiting dispatch. Reason: ${data.assignmentReview.reason}` : ' Before dispatch.'}`,
       ],
     );
+    if(oldDate!==data.preferredDate || String(booking.slot_start)!==slot.start || String(booking.slot_end)!==slot.end)
+      await enqueueBookingLifecycleEmail(connection,bookingId,'booking.rescheduled',{eventKey:`booking.rescheduled:${bookingId}:${data.requestId}`,previousAppointment:bookingAppointment(booking)});
     const result = {
       bookingId,
       status: wasAssigned ? 'Confirmed' : booking.booking_status,

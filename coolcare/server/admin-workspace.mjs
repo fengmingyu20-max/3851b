@@ -1,3 +1,5 @@
+import { bookingMailEventTypes } from './booking-email.mjs';
+const customerMailEventsSql=bookingMailEventTypes.map(value=>`'${value}'`).join(',');
 import {memberSql} from './teams.mjs';
 import { withBookingReference } from './booking-reference.mjs';
 import { listAdminAudit } from './admin-audit.mjs';
@@ -105,7 +107,7 @@ export async function listBookingEmails(pool, bookingId) {
   const [rows] = await pool.execute(
     `SELECT email_id AS emailId,recipient,subject,status,delivery_mode AS deliveryMode,
     attempts,last_error AS lastError,next_attempt_at AS nextAttemptAt,sent_at AS sentAt,UNIX_TIMESTAMP(created_at) AS createdAtEpoch
-    FROM booking_email_outbox WHERE booking_id=? AND event_type='booking.assigned' ORDER BY email_id DESC`,
+    FROM booking_email_outbox WHERE booking_id=? AND event_type IN (${customerMailEventsSql}) ORDER BY email_id DESC`,
     [bookingId],
   );
   return {
@@ -142,7 +144,7 @@ export async function retryBookingEmail(pool, actor, bookingId, emailId, raw) {
     );
     if (!booking) throw new AppError('Booking not found.', 404);
     const [[email]] = await c.execute(
-      "SELECT * FROM booking_email_outbox WHERE email_id=? AND booking_id=? AND event_type='booking.assigned' FOR UPDATE",
+      `SELECT * FROM booking_email_outbox WHERE email_id=? AND booking_id=? AND event_type IN (${customerMailEventsSql}) FOR UPDATE`,
       [emailId, bookingId],
     );
     if (!email) throw new AppError('Customer notification not found.', 404);
@@ -292,7 +294,7 @@ export async function getOperationsOverview(pool) {
   );
   const [[mail]] =
     await pool.execute(`SELECT SUM(status='Pending' AND last_error IS NOT NULL) AS failedMail,
-    SUM(status IN ('Pending','Sending') AND delivery_mode<>'disabled') AS queuedMail FROM booking_email_outbox WHERE event_type='booking.assigned'`);
+    SUM(status IN ('Pending','Sending') AND delivery_mode<>'disabled') AS queuedMail FROM booking_email_outbox WHERE event_type IN (${customerMailEventsSql})`);
   const [[returns]] = await pool.execute(
     "SELECT COUNT(*) AS returnVisits FROM service_progress WHERE follow_up_status IN ('Required','Awaiting confirmation')",
   );
@@ -306,7 +308,7 @@ export async function getOperationsOverview(pool) {
   );
   const [failures] =
     await pool.execute(`SELECT email_id AS emailId,booking_id AS bookingId,(SELECT b.created_at FROM booking b WHERE b.booking_id=booking_email_outbox.booking_id) AS bookingCreatedAt,recipient,last_error AS lastError,next_attempt_at AS nextAttemptAt FROM booking_email_outbox
-    WHERE event_type='booking.assigned' AND status='Pending' AND last_error IS NOT NULL ORDER BY next_attempt_at,email_id LIMIT 10`);
+    WHERE event_type IN (${customerMailEventsSql}) AND status='Pending' AND last_error IS NOT NULL ORDER BY next_attempt_at,email_id LIMIT 10`);
   const { plans } = await listAdminAnnualPlans(pool);
   const renewalContactsDue = plans.filter(plan => plan.reminder.due).length;
   const renewalContactsOverdue = plans.filter(plan => plan.reminder.due && plan.reminder.dueDate < today).length;

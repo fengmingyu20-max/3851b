@@ -1,3 +1,4 @@
+import { enqueueBookingLifecycleEmail, bookingAppointment } from './booking-email.mjs';
 import { createPasswordResetService } from './password-reset.mjs';
 import { createRegistrationService } from './registration-email.mjs';
 import { bookingReference } from './booking-reference.mjs';
@@ -100,7 +101,9 @@ export async function changePublicBooking(pool,user,id,action,input){
  await c.execute('INSERT INTO booking_change_request(booking_id,request_type,requested_service_date,requested_time_slot,reason,request_status) VALUES (?,?,?,?,?,?)',[bookingId,action==='reschedule'?'Reschedule':'Cancel',patch.preferredDate||null,patch.timeWindow||null,'Customer self-service with at least 72 hours notice','Approved']);
  const oldServiceTime=b.slot_start&&b.slot_end?`${String(b.slot_start).slice(0,5)} - ${String(b.slot_end).slice(0,5)}`:b.preferred_time_slot;
  const newServiceTime=slot?`${slot.start.slice(0,5)} - ${slot.end.slice(0,5)}`:null;
- await c.execute('INSERT INTO booking_status_history(booking_id,old_status,new_status,changed_by_user_id,change_note) VALUES (?,?,?,?,?)',[bookingId,b.booking_status,action==='reschedule'?'Submitted':'Cancelled',user.id,action==='reschedule'?'Customer rescheduled from '+String(b.preferred_service_date).slice(0,10)+' '+oldServiceTime+' to '+patch.preferredDate+' '+newServiceTime+' (Singapore time). Previous assignment released; awaiting confirmation.':'Customer cancelled with at least 72 hours notice. Previous assignment released.']);
+ const [history]=await c.execute('INSERT INTO booking_status_history(booking_id,old_status,new_status,changed_by_user_id,change_note) VALUES (?,?,?,?,?)',[bookingId,b.booking_status,action==='reschedule'?'Submitted':'Cancelled',user.id,action==='reschedule'?'Customer rescheduled from '+String(b.preferred_service_date).slice(0,10)+' '+oldServiceTime+' to '+patch.preferredDate+' '+newServiceTime+' (Singapore time). Previous assignment released; awaiting confirmation.':'Customer cancelled with at least 72 hours notice. Previous assignment released.']);
+ const mailEvent=action==='reschedule'?'booking.rescheduled':'booking.cancelled';
+ await enqueueBookingLifecycleEmail(c,bookingId,mailEvent,{eventKey:`${mailEvent}:${bookingId}:history:${history.insertId}`,previousAppointment:bookingAppointment(b)});
  await c.commit();return {success:true};
  }catch(e){await c.rollback();throw e;}finally{c.release();}
 }

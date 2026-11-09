@@ -148,10 +148,10 @@ test('assigned reschedule releases work atomically, queues dispatch and replays 
   assert.equal(after.preferredDate, '2091-01-09'); assert.ok(after.waitingSince);
   assert.equal(after.assignments[0].status, 'Cancelled'); assert.equal(after.assignments[0].workStatus, 'Cancelled');
   assert.equal(after.timeline.length, before.timeline.length + 1);
-  assert.equal((await listBookingEmails(db, id)).rows.length, 1);
+  assert.equal((await listBookingEmails(db, id)).rows.length, 2);
   assert.equal((await listAdminBookings(db, { queue: 'waiting', q: String(id) })).total, 1);
   await dispatchBooking(db, actor, id, { requestId: randomUUID() });
-  assert.equal((await listBookingEmails(db, id)).rows.length, 2, 'only the new successful dispatch adds a notification');
+  assert.equal((await listBookingEmails(db, id)).rows.length, 3, 'reschedule and the new successful dispatch each add one notification');
 }));
 
 test('stale review, unavailable capacity and travel prevent assigned reschedule without releasing the old team', () => fixture(async ({ c, db, actor, create }) => {

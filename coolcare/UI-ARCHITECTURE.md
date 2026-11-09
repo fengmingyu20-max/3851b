@@ -58,8 +58,9 @@ reason. `PATCH /api/admin/bookings/:id/reschedule` requires `assignmentReview`
 orders. Under existing customer/booking/capacity locks it rechecks the snapshot and
 target capacity, cancels old assigned work, updates any annual visit date and returns
 the order to Confirmed waiting dispatch atomically. Failure preserves the old work.
-Unassigned clients keep their existing payload. Rescheduling sends no email;
-dispatch after release creates a new assignment-specific customer outbox event.
+Unassigned clients keep their existing payload. Successful rescheduling queues an
+appointment-change email with immutable old/new times; dispatch after release adds
+a separate assignment-specific confirmation event.
 
 Migration 37 adds append-only Admin renewal-contact records. Yearly packages marks
 unrenewed plans due within 14 Singapore calendar days of the earlier final visit or
@@ -76,7 +77,7 @@ same definitions as their counts. Search and pagination preserve the selected qu
 In-progress and completed booking mutations are rejected inside the order transaction;
 customer email retry remains a separate communication recovery action. Rejection
 uses a final confirmation preview and returns the actual released points in the
-idempotent result, without sending an additional email.
+idempotent result, and queues one rejection email with the public reason.
 
 Migration 36 adds administrator-only review follow-up state and an append-only event
 history. `/api/performance/admin/visits/:reportId/follow-up` accepts a PUT with
@@ -459,3 +460,17 @@ and removes it from the URL. Tokens and new passwords stay in memory, not browse
 storage. The token is sent only in a CSRF-protected POST. Merely opening a link does
 not change a password or consume the token. Success clears inputs and asks the user
 to sign in normally. Refreshing the page requires reopening the emailed link.
+
+
+## Booking change email notifications
+
+Successful customer cancellation/rescheduling, administrator rescheduling/rejection,
+public rejection-reason updates and annual visit rebooking queue customer emails
+inside their existing transactions. Return invite, customer appointment selection
+and administrator dispatch send distinct requested/confirmed messages. Only the
+customer-facing return invitation message is included; internal work/parts notes
+and admin-only reschedule reasons are not emailed. All times use Singapore time.
+Business operation/request or history identities deduplicate retries. A later change
+never rewrites an earlier queued snapshot. Failed/unauthorized changes and no-op
+requests do not queue mail. Admin order email history, failed-delivery badges and
+manual retry include these event types using the existing UI and authentication.

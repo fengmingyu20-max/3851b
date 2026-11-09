@@ -1,3 +1,4 @@
+import { enqueueBookingLifecycleEmail, bookingAppointment } from '../booking-email.mjs';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { AppError } from '../inventory.mjs';
@@ -69,6 +70,7 @@ export async function rebookAnnualVisit(pool, user, id, input) {
         VALUES (?,'Reschedule',?,?,?,'Approved')`, [bookingId, data.preferredDate, data.timeWindow, `Customer reopened annual visit ${visit.visit_number} within its original quarterly window; original plan and agreed service price retained.`]);
       await c.execute(`INSERT INTO booking_status_history(booking_id,old_status,new_status,changed_by_user_id,change_note)
         VALUES (?,?,'Submitted',?,?)`, [bookingId, booking.booking_status, user.id, `Customer rebooked annual visit ${visit.visit_number} from ${String(booking.preferred_service_date).slice(0, 10)} to ${data.preferredDate} ${slot.start.slice(0, 5)} - ${slot.end.slice(0, 5)} (Singapore time). Same booking and quarterly entitlement retained; awaiting confirmation. Previously returned loyalty points are not reserved again.`]);
+      await enqueueBookingLifecycleEmail(c,bookingId,'booking.rebooked',{eventKey:`booking.rebooked:${bookingId}:${data.requestId}`,previousAppointment:bookingAppointment(booking)});
       const result = { success: true, bookingId };
       await c.execute('INSERT INTO commerce_operation(request_id,actor_user_id,payload_hash,result_json) VALUES (?,?,?,?)', [data.requestId, user.id, hash, JSON.stringify(result)]);
       await c.commit();
