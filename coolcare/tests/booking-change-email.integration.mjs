@@ -100,7 +100,7 @@ test('real booking and return transactions create one committed notification per
     const [assignment] = await pool.execute("INSERT INTO assignment(booking_id,technician_id,assigned_by_admin_id,assignment_status) VALUES (?,?,?,'Assigned')", [b.id, tech.technician_id, actor.userId]);
     const [job] = await pool.execute("INSERT INTO work_order(booking_id,assignment_id,appointment_date,appointment_time,current_status) VALUES (?,?,?,'09:00:00','Awaiting return arrangement')", [b.id, assignment.insertId, b.date + ' 09:00:00']);
     await pool.execute("INSERT INTO service_progress(job_id,follow_up_status) VALUES (?,'Required')", [job.insertId]);
-    await pool.execute('INSERT INTO service_report(job_id,work_performed,submitted_time) VALUES (?,'Fixture return report',UTC_TIMESTAMP())', [job.insertId]);
+    await pool.execute("INSERT INTO service_report(job_id,work_performed,submitted_time) VALUES (?,'Fixture return report',UTC_TIMESTAMP())", [job.insertId]);
     let version = 0;
     const act = async (role, extra) => {
       const data = { requestId: randomUUID(), expectedVersion: version, ...extra };
