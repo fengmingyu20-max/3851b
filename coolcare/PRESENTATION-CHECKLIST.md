@@ -27,8 +27,7 @@ as coursework examples, never as real customers or endorsements.
 - After a planned rehearsal deployment, reopen one previously uploaded photo and
   signature through the normal authenticated report. Check that both still load.
   See [Azure deployment](AZURE-DEPLOYMENT.md) for the operator settings.
-- Use the three Demo Fast Sign-In buttons to fill the presentation email address,
-  enter its password, then click Sign In. Verify that the actual Customer, Technician and Admin accounts
+- Enter the presentation account email and password manually, then click Sign In. Verify that the actual Customer, Technician and Admin accounts
   can sign in before the session starts. Other account credentials stay private.
 - Open **three independent browser profiles**: Customer, Admin and Technician.
   Three tabs in one profile share the same login cookie and are not sufficient.

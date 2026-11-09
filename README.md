@@ -1,10 +1,10 @@
-# CoolCare 整合网站
+# CoolCare ������վ
 
-唯一维护和运行的应用位于 `coolcare/`。网站界面全英文，主页沿用上传设计的蓝白配色、图片和卡片风格，品牌统一为 CoolCare。客户、技师、库存页面保留各自原设计。旧上传项目及压缩包已退出 Git 跟踪，本机参考副本保留；来源记录见 [ORIGINS.md](coolcare/ORIGINS.md)。
+Ψһά�������е�Ӧ��λ�� `coolcare/`����վ����ȫӢ�ģ���ҳ�����ϴ���Ƶ�������ɫ��ͼƬ�Ϳ�Ƭ���Ʒ��ͳһΪ CoolCare���ͻ�����ʦ�����ҳ�汣������ԭ��ơ����ϴ���Ŀ��ѹ�������˳� Git ���٣������ο�������������Դ��¼�� [ORIGINS.md](coolcare/ORIGINS.md)��
 
-## 启动
+## ����
 
-需要 Node.js 22.13+ 和 Docker Desktop（Linux containers）。在仓库根目录执行：
+��Ҫ Node.js 22.13+ �� Docker Desktop��Linux containers�����ڲֿ��Ŀ¼ִ�У�
 
 ```powershell
 npm run setup
@@ -13,113 +13,113 @@ npm run db:sample
 npm start
 ```
 
-打开 http://localhost:3000/ 。以后可在 Docker Desktop 运行后双击 `启动整合网站.cmd`。`npm run db:down` 仅停止数据库，保留数据卷。
+�� http://localhost:3000/ ���Ժ���� Docker Desktop ���к�˫�� `����������վ.cmd`��`npm run db:down` ��ֹͣ���ݿ⣬�������ݾ���
 
-当前课堂演示允许负责技师在预约日期之前 Start service；本机和线上行为一致，不需要时间开关。预约日期保持不变，开始与结束时间记录实际操作时间。工单归属、状态顺序和每名技师只能同时进行一单的限制继续有效。提前完成的服务在报表中使用 Actual completion date 查看；新预约的 14 天提前期仍然保留。
+��ǰ������ʾ��������ʦ��ԤԼ����֮ǰ Start service��������������Ϊһ�£�����Ҫʱ�俪�ء�ԤԼ���ڱ��ֲ��䣬��ʼ�����ʱ���¼ʵ�ʲ���ʱ�䡣����������״̬˳���ÿ����ʦֻ��ͬʱ����һ�������Ƽ�����Ч����ǰ��ɵķ����ڱ�����ʹ�� Actual completion date �鿴����ԤԼ�� 14 ����ǰ����Ȼ������
 
-新电脑只需要当前仓库中的文件，不需要旧 ZIP、旧项目目录或 Git LFS。`coolcare/` 包含两端前端源码、共享组件、Node API、数据库结构和迁移；根目录保留统一启动脚本、团队约定及 Postman 工作区。
+�µ���ֻ��Ҫ��ǰ�ֿ��е��ļ�������Ҫ�� ZIP������ĿĿ¼�� Git LFS��`coolcare/` ��������ǰ��Դ�롢���������Node API�����ݿ�ṹ��Ǩ�ƣ���Ŀ¼����ͳһ�����ű����Ŷ�Լ���� Postman ��������
 
-`db:sample` 是可选的本机合成数据导入步骤：提供 28 笔相互关联的预约、2 份年度套餐、10 份维护报告和完整库存流水。已有业务数据时会拒绝覆盖；只有停止网站并明确使用 `--replace` 才会在备份后替换，日常 `db:up` 不清理数据。试运行、指定日期、账号和备份说明见 [SAMPLE-DATA.md](coolcare/SAMPLE-DATA.md)。
+`db:sample` �ǿ�ѡ�ı����ϳ����ݵ��벽�裺�ṩ 28 ���໥������ԤԼ��2 ������ײ͡�10 ��ά����������������ˮ������ҵ������ʱ��ܾ����ǣ�ֻ��ֹͣ��վ����ȷʹ�� `--replace` �Ż��ڱ��ݺ��滻���ճ� `db:up` ���������ݡ������С�ָ�����ڡ��˺źͱ���˵���� [SAMPLE-DATA.md](coolcare/SAMPLE-DATA.md)��
 
-## 多技师派单与积分活动（2026-10-28）
+## �༼ʦ�ɵ�����ֻ��2026-10-28��
 
-预约支持 1–20 台空调。自动按每 4 台一名技师向上取整，一次派齐；手动由 Admin 自由选择人数并指定主技师。清洗时长按每人分担的最多台数计算，维修检查保留基础时长。所有成员的日程和交通缓冲均参与冲突检查。多人订单保留一份工单和报告，由主技师操作、辅助技师只读；返工可以调整团队。每位成员保留参与记录和共享评价，公司订单、金额和客户积分只算一次。
+ԤԼ֧�� 1�C20 ̨�յ����Զ���ÿ 4 ̨һ����ʦ����ȡ����һ�����룻�ֶ��� Admin ����ѡ��������ָ������ʦ����ϴʱ����ÿ�˷ֵ������̨�����㣬ά�޼�鱣������ʱ�������г�Ա���ճ̺ͽ�ͨ����������ͻ��顣���˶�������һ�ݹ����ͱ��棬������ʦ������������ʦֻ�����������Ե����Ŷӡ�ÿλ��Ա���������¼�͹������ۣ���˾���������Ϳͻ�����ֻ��һ�Ρ�
 
-My Rewards 在预订时立即记录 Points reserved，在取消、拒绝、过期或主动释放时记录 Points returned，并同步其他客户标签页。预订冻结可用积分，完成结算时不重复扣分。运行 `npm run db:up` 应用 `35-reward-activity-and-teams.sql`，保留现有业务数据。详细规则见 `coolcare/BOOKING-WORKFLOWS.md` 和 `coolcare/COMMERCE-REWARDS.md`。
-## 页面与账号
+My Rewards ��Ԥ��ʱ������¼ Points reserved����ȡ�����ܾ������ڻ������ͷ�ʱ��¼ Points returned����ͬ�������ͻ���ǩҳ��Ԥ��������û��֣���ɽ���ʱ���ظ��۷֡����� `npm run db:up` Ӧ�� `35-reward-activity-and-teams.sql`����������ҵ�����ݡ���ϸ����� `coolcare/BOOKING-WORKFLOWS.md` �� `coolcare/COMMERCE-REWARDS.md`��
+## ҳ�����˺�
 
-本次 Admin 更新增加“提交满 24 小时仍未确认”提醒；未出发且没有服务或库存活动的已派单订单可在最终确认后改期，原团队释放并进入等待派单。Yearly packages 可筛选两周内到期或已逾期的续约联系任务，并记录联系渠道、备注、管理员和时间。联系记录不发送邮件；客户通知仍只在成功派单后产生。组员拉取后运行 `npm run db:up` 应用新增的 `37-admin-plan-reminders.sql`，保留原数据。
+���� Admin �������ӡ��ύ�� 24 Сʱ��δȷ�ϡ����ѣ�δ������û�з�����������ɵ�������������ȷ�Ϻ���ڣ�ԭ�Ŷ��ͷŲ�����ȴ��ɵ���Yearly packages ��ɸѡ�����ڵ��ڻ������ڵ���Լ��ϵ���񣬲���¼��ϵ��������ע������Ա��ʱ�䡣��ϵ��¼�������ʼ����ͻ�֪ͨ��ֻ�ڳɹ��ɵ����������Ա��ȡ������ `npm run db:up` Ӧ�������� `37-admin-plan-reminders.sql`������ԭ���ݡ�
 
-后续完善：订单搜索默认保留当前队列，可明确选择搜索全部订单；已派单未出发订单支持完整周的可用时间建议；Overview 增加套餐续约待联系/逾期入口；套餐搜索、状态和续约筛选保存在网址中，刷新和浏览器返回后仍保留。本轮不增加数据库迁移。
+�������ƣ���������Ĭ�ϱ�����ǰ���У�����ȷѡ������ȫ�����������ɵ�δ��������֧�������ܵĿ���ʱ�佨�飻Overview �����ײ���Լ����ϵ/������ڣ��ײ�������״̬����Լɸѡ��������ַ�У�ˢ�º���������غ��Ա��������ֲ��������ݿ�Ǩ�ơ�
 
-| 页面 | 地址 |
+| ҳ�� | ��ַ |
 | --- | --- |
-| CoolCare 主页 | `/` |
-| 登录 / 注册 | `/#/login` / `/#/register` |
-| 客户预约管理（取消、改期） | `/customer/bookings`（旧 `/#/bookings` 自动转入） |
-| 客户 Dashboard / 预约 / 历史 | `/customer` |
-| 技师工单 | `/technician/index.html` |
-| Admin Console（订单、派单、员工、库存） | `/admin/orders`（`/admin/inventory` 继续兼容） |
-| 客户年度套餐 / 积分 / 服务评价 | `/customer/plans` / `/customer/rewards` / `/customer/feedback` |
-| 经营报表 / 积分管理 / 技师表现 | `/admin/reports` / `/admin/rewards` / `/admin/performance` |
-| 管理员年度套餐管理 | `/admin/plans` |
-| 管理员订单操作日志 | `/admin/audit` |
-| 技师自己的表现记录 | `/technician/index.html#performance` |
+| CoolCare ��ҳ | `/` |
+| ��¼ / ע�� | `/#/login` / `/#/register` |
+| �ͻ�ԤԼ������ȡ�������ڣ� | `/customer/bookings`���� `/#/bookings` �Զ�ת�룩 |
+| �ͻ� Dashboard / ԤԼ / ��ʷ | `/customer` |
+| ��ʦ���� | `/technician/index.html` |
+| Admin Console���������ɵ���Ա������棩 | `/admin/orders`��`/admin/inventory` �������ݣ� |
+| �ͻ�����ײ� / ���� / �������� | `/customer/plans` / `/customer/rewards` / `/customer/feedback` |
+| ��Ӫ���� / ���ֹ��� / ��ʦ���� | `/admin/reports` / `/admin/rewards` / `/admin/performance` |
+| ����Ա����ײ͹��� | `/admin/plans` |
+| ����Ա����������־ | `/admin/audit` |
+| ��ʦ�Լ��ı��ּ�¼ | `/technician/index.html#performance` |
 
-登录页提供 Alice Tan（Customer）、Chris Lim（Technician）和 Norshida（Admin）三个课堂演示快捷按钮，填入对应演示账号邮箱并聚焦密码框。手动输入密码后点击 Sign In，通过正常后端密码校验、会话和角色检查。快捷按钮不会公开密码、创建账号或修改数据库密码。账号凭据与密码轮换记录保持私密。测试套件使用独立的本机数据库，不能对线上数据库执行。
+��¼ҳʹ���ֶ��������������ķ�ʽ��¼�����Ƴ�������ʾ��ݰ�ť�������˻������롢�Ự�ͽ�ɫУ�鱣�ֲ��䡣
 
-主页登录后按账号角色进入对应区域；客户可通过页头 Dashboard 进入原客户中心。公开注册始终只创建 Customer。Admin 和 Technician 使用 48 小时有效的一次性邀请链接激活账号；Owner 可邀请 Admin，Owner 或 Admin 可邀请 Technician。旧 SQLite 导入账号保留原有 bcrypt 密码，不覆盖同邮箱现有账号。
+��ҳ��¼���˺Ž�ɫ�����Ӧ���򣻿ͻ���ͨ��ҳͷ Dashboard ����ԭ�ͻ����ġ�����ע��ʼ��ֻ���� Customer��Admin �� Technician ʹ�� 48 Сʱ��Ч��һ�����������Ӽ����˺ţ�Owner ������ Admin��Owner �� Admin ������ Technician���� SQLite �����˺ű���ԭ�� bcrypt ���룬������ͬ���������˺š�
 
-主页将服务和报价合并展示，空调数量选择实时使用 `/api/public/offers` 的目录价格计算清洗、维修检查、年度套餐总价及每次费用；目录加载失败时提示重试，不显示虚构价格。游客选定的服务、数量及故障说明在本次页面的登录/注册流程中保留，登录后继续预约。普通客户登录进入 Dashboard，所有 My Bookings 入口进入同一客户订单页。主页提前展示新预约至少 14 天、工作日、同地址每周最多一次清洗及等待确认的预约规则。
+��ҳ������ͱ��ۺϲ�չʾ���յ�����ѡ��ʵʱʹ�� `/api/public/offers` ��Ŀ¼�۸������ϴ��ά�޼�顢����ײ��ܼۼ�ÿ�η��ã�Ŀ¼����ʧ��ʱ��ʾ���ԣ�����ʾ�鹹�۸��ο�ѡ���ķ�������������˵���ڱ���ҳ��ĵ�¼/ע�������б�������¼�����ԤԼ����ͨ�ͻ���¼���� Dashboard������ My Bookings ��ڽ���ͬһ�ͻ�����ҳ����ҳ��ǰչʾ��ԤԼ���� 14 �졢�����ա�ͬ��ַÿ�����һ����ϴ���ȴ�ȷ�ϵ�ԤԼ����
 
-客户登录后，在任意 Customer 页面点击右下角的小圆形聊天按钮打开英文聊天面板；原侧边栏和手机底栏的 Assistant 入口已移除。**Chat & FAQs** 支持输入关键词或简短问题、Enter 发送和 Shift+Enter 换行，并保留四个快捷问题及折叠的十二个分组下拉问题，涵盖价格、预约/改期规则、套餐、积分、维修费用及联系服务团队；价格来自本次会话加载的真实目录，不编造报价或承诺邮件已送达。**Booking** 保留 Service、Address、Schedule、Review 四步预约；切换 FAQ 不重置已填答案或新增地址表单。草稿按账号保存到 MySQL，确认前检查最新价格及套餐全部四次日期，成功后显示真实订单编号。支持英文及常见中文关键词，回答保持英文；问题含糊时提供主题选择，不支持的问题明确说明范围。文字提问不会自动提交、修改或取消订单。问答仅保存在当前页面内存，不提供历史查询，不需要外部 AI API key。本轮 FAQ 更新无需数据库迁移；原有草稿表仍通过正常迁移流程维护。
+�ͻ���¼�������� Customer ҳ�������½ǵ�СԲ�����찴ť��Ӣ��������壻ԭ��������ֻ������� Assistant ������Ƴ���**Chat & FAQs** ֧������ؼ��ʻ������⡢Enter ���ͺ� Shift+Enter ���У��������ĸ�������⼰�۵���ʮ���������������⣬���Ǽ۸�ԤԼ/���ڹ����ײ͡����֡�ά�޷��ü���ϵ�����Ŷӣ��۸����Ա��λỰ���ص���ʵĿ¼�������챨�ۻ��ŵ�ʼ����ʹ**Booking** ���� Service��Address��Schedule��Review �Ĳ�ԤԼ���л� FAQ ����������𰸻�������ַ�������ݸ尴�˺ű��浽 MySQL��ȷ��ǰ������¼۸��ײ�ȫ���Ĵ����ڣ��ɹ�����ʾ��ʵ������š�֧��Ӣ�ļ��������Ĺؼ��ʣ��ش𱣳�Ӣ�ģ����⺬��ʱ�ṩ����ѡ�񣬲�֧�ֵ�������ȷ˵����Χ���������ʲ����Զ��ύ���޸Ļ�ȡ���������ʴ�������ڵ�ǰҳ���ڴ棬���ṩ��ʷ��ѯ������Ҫ�ⲿ AI API key������ FAQ �����������ݿ�Ǩ�ƣ�ԭ�вݸ����ͨ������Ǩ������ά����
 
-客户中心提供独立的 `/customer/bookings/:id` 订单详情，可查看状态进度、在原预约开始至少 72 小时前自助改期或取消尚未开始服务的预约。**Contact support** 打开写给 `c3549521@uon.edu.au` 的邮件草稿并带上订单编号，不会自动发送。年度套餐按购买批次归组，Dashboard 优先显示最近预约，页面在返回时刷新订单状态。
+�ͻ������ṩ������ `/customer/bookings/:id` �������飬�ɲ鿴״̬���ȡ���ԭԤԼ��ʼ���� 72 Сʱǰ�������ڻ�ȡ����δ��ʼ�����ԤԼ��**Contact support** ��д�� `c3549521@uon.edu.au` ���ʼ��ݸ岢���϶�����ţ������Զ����͡�����ײͰ��������ι��飬Dashboard ������ʾ���ԤԼ��ҳ���ڷ���ʱˢ�¶���״̬��
 
-头像菜单可进入个人资料和地址管理，支持修改姓名、电话、新增地址、设置默认地址和归档旧地址。修改已被订单使用的地址会保存替代地址，保留历史订单原地址。客户页面、助手和主页预约/改期使用固定英文日历；中文操作系统也显示英文月份、星期及日期，不依赖系统原生日期控件。手机端预约操作栏固定显示。
+ͷ��˵��ɽ���������Ϻ͵�ַ������֧���޸��������绰��������ַ������Ĭ�ϵ�ַ�͹鵵�ɵ�ַ���޸��ѱ�����ʹ�õĵ�ַ�ᱣ�������ַ��������ʷ����ԭ��ַ���ͻ�ҳ�桢���ֺ���ҳԤԼ/����ʹ�ù̶�Ӣ�����������Ĳ���ϵͳҲ��ʾӢ���·ݡ����ڼ����ڣ�������ϵͳԭ�����ڿؼ����ֻ���ԤԼ�������̶���ʾ��
 
-已完成订单的维护报告显示实际记录的工作时长、配件用量及可用照片，支持照片放大和 **Print / Save as PDF**。未记录的时长或缺失照片会明确提示，不生成虚构报告数据。迁移 `11-customer-address-management.sql` 随 `npm run db:up` 执行，保留已有数据。
+����ɶ�����ά��������ʾʵ�ʼ�¼�Ĺ���ʱ�������������������Ƭ��֧����Ƭ�Ŵ�� **Print / Save as PDF**��δ��¼��ʱ����ȱʧ��Ƭ����ȷ��ʾ���������鹹�������ݡ�Ǩ�� `11-customer-address-management.sql` �� `npm run db:up` ִ�У������������ݡ�
 
-## 数据整合
+## ��������
 
-会议更新：Admin 的 Action centre 可以直达具体订单，拒绝原因支持下拉选项及 Other 说明，进行中的订单只读；Customer 的拒绝通知按真实预留记录显示已返还积分，已完成且未评价的服务会显示评分提醒。技师在 My performance 的 Reviews 筛选查看自己服务的客户评价。Reports & Analytics 支持按季度／年度汇总服务金额，Annual Packages 可查看客户年度套餐及四次订单。运行 `npm run db:up` 应用迁移 `34-early-renewal-rewards.sql`：最后一次预约前 60 天开放续订，客户在该次预约开始前续订可获 100 额外积分，待新套餐第一次服务完成后发放一次，普通服务积分另计；客户页面显示实际截止时间。
+������£�Admin �� Action centre ����ֱ����嶩�����ܾ�ԭ��֧������ѡ� Other ˵���������еĶ���ֻ����Customer �ľܾ�֪ͨ����ʵԤ����¼��ʾ�ѷ������֣��������δ���۵ķ������ʾ�������ѡ���ʦ�� My performance �� Reviews ɸѡ�鿴�Լ�����Ŀͻ����ۡ�Reports & Analytics ֧�ְ����ȣ���Ȼ��ܷ����Annual Packages �ɲ鿴�ͻ�����ײͼ��Ĵζ��������� `npm run db:up` Ӧ��Ǩ�� `34-early-renewal-rewards.sql`�����һ��ԤԼǰ 60 �쿪���������ͻ��ڸô�ԤԼ��ʼǰ�����ɻ� 100 ������֣������ײ͵�һ�η�����ɺ󷢷�һ�Σ���ͨ����������ƣ��ͻ�ҳ����ʾʵ�ʽ�ֹʱ�䡣
 
-四项扩展功能使用真实业务记录，运行 `npm run db:up` 会应用所需迁移，包括订单完成自动发分的 `30-completion-rewards.sql`、年度套餐确认期限的 `31-annual-confirmation.sql`、每次服务报告归属的 `32-service-visit-identity.sql` 和完成金额明细的 `33-booking-amount-snapshots.sql`，保留已有订单：
+������չ����ʹ����ʵҵ���¼������ `npm run db:up` ��Ӧ������Ǩ�ƣ�������������Զ����ֵ� `30-completion-rewards.sql`������ײ�ȷ�����޵� `31-annual-confirmation.sql`��ÿ�η��񱨸������ `32-service-visit-identity.sql` ����ɽ����ϸ�� `33-booking-amount-snapshots.sql`���������ж�����
 
-- **Reports & Analytics** 在 `/admin/reports` 保留服务金额、订单状态、服务类型和套餐履约图，增加 **Completed vs not completed**、客户数量、好/中/差评价对照及年度套餐四次 visit 明细，支持每日、季度、年度和 CSV。Not completed 包括取消、拒绝和过期，并不都表示待服务；Actual completion date 模式只选择已完成订单。新注册客户按账号创建日统计，不受服务/技师筛选影响；有预约客户按所选订单去重，两列和跨期人数不能直接相加。评价按首次收到日期统计当前保存的星级：4–5 星为 Positive、3 星 Neutral、1–2 星 Negative，未评价排除，多人服务的同一评价在公司报表只计一次。年度表逐次列出 Completed、Awaiting service、Closed，包含所选套餐在筛选范围外的访问并明确标记，返工不消耗额外季度次数。日期均为新加坡时间；金额是服务价值而非实际收款。本轮无需数据库迁移。
-- **My Plans** 显示原年度套餐的四次季度服务、使用情况、日期和续购提醒。续购须由客户确认当前价格后提交，创建新的四次预约；不会自动续费。
-- **My Rewards** 默认订单完成后，每 S$1 的服务金额获得 1 分，不足一分向下取整；金额包含技师追加费用，并扣除已应用的积分优惠。100 分抵 S$5，在创建预约的确认步骤选择抵扣，页面显示可用积分、抵扣金额和抵扣后预估费用；客户预约、首页和 Assistant 使用相同规则。订单与积分预留在同一事务保存，失败不留下部分订单；年度套餐与续购仅对第一季度订单抵扣。My Rewards 保留余额、记录和已有预留的释放入口。普通订单按订单发放一次，年度套餐按各季度订单分别发放；重试、补交报告或同一订单再次上门不会重复发分。取消、拒绝或过期会释放未使用的预留积分，管理员修改规则和调整积分均留审计。
-- **Technician Performance** 按每次上门记录保留实际技师身份，显示客户星级、评论、评价数量、完成服务数、回访数及服务开始准时率。Admin 在 `/admin/performance` 选择具体技师查看月/季/年评分曲线，技师在 My performance 只看到自己的曲线。曲线按实际服务完成日归组，范围最长五年；空期间留空，未评价不计零分。选定日期范围的前/后半段各至少三条评价才显示均值升降，不能据此断言服务质量改善。Scoring settings、综合评分和管理员质量评分入口继续移除。
+- **Reports & Analytics** �� `/admin/reports` �������������״̬���������ͺ��ײ���Լͼ������ **Completed vs not completed**���ͻ���������/��/�����۶��ռ�����ײ��Ĵ� visit ��ϸ��֧��ÿ�ա����ȡ���Ⱥ� CSV��Not completed ����ȡ�����ܾ��͹��ڣ���������ʾ������Actual completion date ģʽֻѡ������ɶ�������ע��ͻ����˺Ŵ�����ͳ�ƣ����ܷ���/��ʦɸѡӰ�죻��ԤԼ�ͻ�����ѡ����ȥ�أ����кͿ�����������ֱ����ӡ����۰��״��յ�����ͳ�Ƶ�ǰ������Ǽ���4�C5 ��Ϊ Positive��3 �� Neutral��1�C2 �� Negative��δ�����ų������˷����ͬһ�����ڹ�˾����ֻ��һ�Ρ���ȱ�����г� Completed��Awaiting service��Closed��������ѡ�ײ���ɸѡ��Χ��ķ��ʲ���ȷ��ǣ����������Ķ��⼾�ȴ��������ھ�Ϊ�¼���ʱ�䣻����Ƿ����ֵ����ʵ���տ�����������ݿ�Ǩ�ơ�
+- **My Plans** ��ʾԭ����ײ͵��Ĵμ��ȷ���ʹ����������ں��������ѡ��������ɿͻ�ȷ�ϵ�ǰ�۸���ύ�������µ��Ĵ�ԤԼ�������Զ����ѡ�
+- **My Rewards** Ĭ�϶�����ɺ�ÿ S$1 �ķ������� 1 �֣�����һ������ȡ������������ʦ׷�ӷ��ã����۳���Ӧ�õĻ����Żݡ�100 �ֵ� S$5���ڴ���ԤԼ��ȷ�ϲ���ѡ��ֿۣ�ҳ����ʾ���û��֡��ֿ۽��͵ֿۺ�Ԥ�����ã��ͻ�ԤԼ����ҳ�� Assistant ʹ����ͬ���򡣶��������Ԥ����ͬһ���񱣴棬ʧ�ܲ����²��ֶ���������ײ����������Ե�һ���ȶ����ֿۡ�My Rewards ��������¼������Ԥ�����ͷ���ڡ���ͨ��������������һ�Σ�����ײͰ������ȶ����ֱ𷢷ţ����ԡ����������ͬһ�����ٴ����Ų����ظ����֡�ȡ�����ܾ�����ڻ��ͷ�δʹ�õ�Ԥ�����֣�����Ա�޸Ĺ���͵������־�����ơ�
+- **Technician Performance** ��ÿ�����ż�¼����ʵ�ʼ�ʦ���ݣ���ʾ�ͻ��Ǽ������ۡ�������������ɷ��������ط���������ʼ׼ʱ�ʡ�Admin �� `/admin/performance` ѡ����弼ʦ�鿴��/��/���������ߣ���ʦ�� My performance ֻ�����Լ������ߡ����߰�ʵ�ʷ�������չ��飬��Χ����ꣻ���ڼ����գ�δ���۲�����֡�ѡ�����ڷ�Χ��ǰ/���θ������������۲���ʾ��ֵ���������ܾݴ˶��Է����������ơ�Scoring settings���ۺ����ֺ͹���Ա����������ڼ����Ƴ���
 
-**Booking operation log**（`/admin/audit`）可组合筛选订单编号、操作类别、具体操作、管理员、SGT 起止日期、客户/原因/请求编号，并按新旧排序及分页；网址保留已应用筛选。每条记录展示原始保存的操作结果并可跳转订单，不补造未记录的修改前值。该日志只包含成功的管理员订单操作，不是全部系统事件。Owner 可导出全部匹配结果（最多 10,000 条），普通 Admin 不可导出；超限需要缩小筛选范围。
+**Booking operation log**��`/admin/audit`�������ɸѡ������š�������𡢾������������Ա��SGT ��ֹ���ڡ��ͻ�/ԭ��/�����ţ������¾����򼰷�ҳ����ַ������Ӧ��ɸѡ��ÿ����¼չʾԭʼ����Ĳ������������ת������������δ��¼���޸�ǰֵ������־ֻ�����ɹ��Ĺ���Ա��������������ȫ��ϵͳ�¼���Owner �ɵ���ȫ��ƥ��������� 10,000 ��������ͨ Admin ���ɵ�����������Ҫ��Сɸѡ��Χ��
 
-管理员使用 **Customer Rewards** 管理积分。网站不再提供付款、收款或退款功能；旧 `/admin/payments` 页面会跳转到 `/admin/rewards`。已经保存的付款和审计数据保留在数据库中，但不参与新的积分计算，也不再通过支付页面或接口操作。新规则只处理升级后实际发生的订单完成事件，不为历史 Completed 订单追补积分。旧报告不会被补造评价或准时率。规则和 API 见 [COMMERCE-REWARDS.md](coolcare/COMMERCE-REWARDS.md)、[OPTIONAL-FEATURE-PLANS.md](coolcare/OPTIONAL-FEATURE-PLANS.md) 和 [OPTIONAL-FEATURE-PERFORMANCE.md](coolcare/OPTIONAL-FEATURE-PERFORMANCE.md)。
+����Աʹ�� **Customer Rewards** �������֡���վ�����ṩ����տ���˿�ܣ��� `/admin/payments` ҳ�����ת�� `/admin/rewards`���Ѿ�����ĸ����������ݱ��������ݿ��У����������µĻ��ּ��㣬Ҳ����ͨ��֧��ҳ���ӿڲ������¹���ֻ����������ʵ�ʷ����Ķ�������¼�����Ϊ��ʷ Completed ����׷�����֡��ɱ��治�ᱻ�������ۻ�׼ʱ�ʡ������ API �� [COMMERCE-REWARDS.md](coolcare/COMMERCE-REWARDS.md)��[OPTIONAL-FEATURE-PLANS.md](coolcare/OPTIONAL-FEATURE-PLANS.md) �� [OPTIONAL-FEATURE-PERFORMANCE.md](coolcare/OPTIONAL-FEATURE-PERFORMANCE.md)��
 
-所有运行模块使用同一个 MySQL `coolcare_service_app`，地址为本机 `3307`。网站运行不依赖 SQLite 或旧项目后端。
+��������ģ��ʹ��ͬһ�� MySQL `coolcare_service_app`����ַΪ���� `3307`����վ���в����� SQLite �����Ŀ��ˡ�
 
-- 登录使用服务端 HttpOnly 会话、bcrypt 校验、CSRF 和登录频率限制，不保存浏览器模拟账号或密码。
-- 客户与技师身份来自登录会话，每个账号只能读取自己的预约或工单。Admin Console 按 Admin/Owner 权限校验；只有 Owner 能邀请或停用 Admin、转交所有权。
-- 主页和原客户页面共用 booking、service_address、aircon_unit 等业务表，预约状态与资料可交叉读取。
-- 主页支持预约提交、查询、取消和改期。Submitted、Confirmed 和 Assigned 预约可在原预约至少 72 小时前自助修改；新日期也须至少 72 小时之后。改期会释放旧派单并重新等待确认，已经开始服务或领用配件的订单需联系服务团队。
-- 预约写入、设备关联、备注、状态历史采用事务；重复请求 ID 防止重复预约。
-- Submitted、Confirmed、Assigned、On The Way 和 In Progress 预约占用团队时段容量；提交和改期在数据库锁内重新检查，年度套餐四次访问原子占位。
-- `database/05-public-site.sql` 增加注册附加资料、预约补充资料、旧数据映射表。`npm run db:up` 自动执行非破坏性迁移与权限更新。
-- 可选的旧 SQLite 导入保留来源映射和原始状态；旧库没有价格时，导入金额保留为未知。
+- ��¼ʹ�÷���� HttpOnly �Ự��bcrypt У�顢CSRF �͵�¼Ƶ�����ƣ������������ģ���˺Ż����롣
+- �ͻ��뼼ʦ�������Ե�¼�Ự��ÿ���˺�ֻ�ܶ�ȡ�Լ���ԤԼ�򹤵���Admin Console �� Admin/Owner Ȩ��У�飻ֻ�� Owner �������ͣ�� Admin��ת������Ȩ��
+- ��ҳ��ԭ�ͻ�ҳ�湲�� booking��service_address��aircon_unit ��ҵ�����ԤԼ״̬�����Ͽɽ����ȡ��
+- ��ҳ֧��ԤԼ�ύ����ѯ��ȡ���͸��ڡ�Submitted��Confirmed �� Assigned ԤԼ����ԭԤԼ���� 72 Сʱǰ�����޸ģ�������Ҳ������ 72 Сʱ֮�󡣸��ڻ��ͷž��ɵ������µȴ�ȷ�ϣ��Ѿ���ʼ�������������Ķ�������ϵ�����Ŷӡ�
+- ԤԼд�롢�豸��������ע��״̬��ʷ���������ظ����� ID ��ֹ�ظ�ԤԼ��
+- Submitted��Confirmed��Assigned��On The Way �� In Progress ԤԼռ���Ŷ�ʱ���������ύ�͸��������ݿ��������¼�飬����ײ��Ĵη���ԭ��ռλ��
+- `database/05-public-site.sql` ����ע�ḽ�����ϡ�ԤԼ�������ϡ�������ӳ�����`npm run db:up` �Զ�ִ�з��ƻ���Ǩ����Ȩ�޸��¡�
+- ��ѡ�ľ� SQLite ���뱣����Դӳ���ԭʼ״̬���ɿ�û�м۸�ʱ���������Ϊδ֪��
 
-只有需要迁移自己持有的旧 SQLite 数据时，才运行以下可选命令，并将示例路径替换为实际源文件路径。旧数据库不随 GitHub 分发：
+ֻ����ҪǨ���Լ����еľ� SQLite ����ʱ�����������¿�ѡ�������ʾ��·���滻Ϊʵ��Դ�ļ�·���������ݿⲻ�� GitHub �ַ���
 
 ```powershell
 cd coolcare
 node scripts/import-accare.mjs "C:/path/to/ac-care.db"
 ```
 
-导入以只读方式打开源文件，通过来源映射去重，可重复运行；不会重复创建同一条历史预约。`--help` 仅显示用法，不访问数据库。普通安装无需运行导入。
+������ֻ����ʽ��Դ�ļ���ͨ����Դӳ��ȥ�أ����ظ����У������ظ�����ͬһ����ʷԤԼ��`--help` ����ʾ�÷������������ݿ⡣��ͨ��װ�������е��롣
 
-## 范围说明
+## ��Χ˵��
 
-登录页已移除未配置的 Google / Apple 登录；忘记密码入口打开账号帮助并提供真实客服邮箱链接，不显示不会发送邮件的 Send Link 操作。注册页提供可阅读的 Terms of Service 和 Privacy Policy（也可通过 `/#/terms`、`/#/privacy` 访问），明确课程演示用途与数据使用范围，密码提示与八位最小长度校验一致。预约通知已接入邮件队列，本机默认由 Mailpit 测试邮箱接收；这与账号找回是不同功能。首页价格卡片读取当前数据库目录。
+��¼ҳ���Ƴ�δ���õ� Google / Apple ��¼������������ڴ��˺Ű������ṩ��ʵ�ͷ��������ӣ�����ʾ���ᷢ���ʼ��� Send Link ������ע��ҳ�ṩ���Ķ��� Terms of Service �� Privacy Policy��Ҳ��ͨ�� `/#/terms`��`/#/privacy` ���ʣ�����ȷ�γ���ʾ��;������ʹ�÷�Χ��������ʾ���λ��С����У��һ�¡�ԤԼ֪ͨ�ѽ����ʼ����У�����Ĭ���� Mailpit ����������գ������˺��һ��ǲ�ͬ���ܡ���ҳ�۸�Ƭ��ȡ��ǰ���ݿ�Ŀ¼��
 
-Admin Console 已提供订单审核、自动派单、员工邀请和库存管理；Technician 工单只能按顺序推进状态。服务端会话目前存放内存，重启后需要重新登录。
+Admin Console ���ṩ������ˡ��Զ��ɵ���Ա������Ϳ�������Technician ����ֻ�ܰ�˳���ƽ�״̬������˻ỰĿǰ����ڴ棬��������Ҫ���µ�¼��
 
-## 最新业务规则与预约邮件
+## ����ҵ�������ԤԼ�ʼ�
 
-客户预约只需选择服务、填写地址和空调数量、选择时间并确认，不再逐台勾选已登记的空调。地址步骤的 **Add new address** 会将地址保存到当前客户账号，供本次和后续预约使用；没有已登记设备的新客户也可预约。Dashboard 的 UPCOMING 卡片及数量按新加坡当前时间筛选尚未开始的有效预约，并显示最近一单。
+�ͻ�ԤԼֻ��ѡ�������д��ַ�Ϳյ�������ѡ��ʱ�䲢ȷ�ϣ�������̨��ѡ�ѵǼǵĿյ�����ַ����� **Add new address** �Ὣ��ַ���浽��ǰ�ͻ��˺ţ������κͺ���ԤԼʹ�ã�û���ѵǼ��豸���¿ͻ�Ҳ��ԤԼ��Dashboard �� UPCOMING ��Ƭ���������¼��µ�ǰʱ��ɸѡ��δ��ʼ����ЧԤԼ������ʾ���һ����
 
-新预约须按新加坡日期至少提前 **14 个自然日**。改期或取消须在原预约至少 **72 小时**前提出，新时间也须至少提前 72 小时；只接受 **周一至周五**，周六日不营业。My Bookings 显示 Submitted、Confirmed、Assigned 及进行中的订单；Completed、Rejected 和 Cancelled 在 Booking History 查看，拒绝原因对客户可见。
+��ԤԼ�밴�¼�������������ǰ **14 ����Ȼ��**�����ڻ�ȡ������ԭԤԼ���� **72 Сʱ**ǰ�������ʱ��Ҳ��������ǰ 72 Сʱ��ֻ���� **��һ������**�������ղ�Ӫҵ��My Bookings ��ʾ Submitted��Confirmed��Assigned �������еĶ�����Completed��Rejected �� Cancelled �� Booking History �鿴���ܾ�ԭ��Կͻ��ɼ���
 
-同一客户对同一地址，在每个周一至周日的日历周内最多预约一次清洗（包括套餐和清洗加维修）；取消、拒绝和过期订单不计入。Repair-only 订单不受清洗次数限制。客户必须注册并登录，可同时选择 **Cleaning 和 Repair**，或选择 **Annual Cleaning Bundle**。Membership 已退出新预约流程，原有订单、订阅和报告保留。
+ͬһ�ͻ���ͬһ��ַ����ÿ����һ�����յ������������ԤԼһ����ϴ�������ײͺ���ϴ��ά�ޣ���ȡ�����ܾ��͹��ڶ��������롣Repair-only ����������ϴ�������ơ��ͻ�����ע�Ტ��¼����ͬʱѡ�� **Cleaning �� Repair**����ѡ�� **Annual Cleaning Bundle**��Membership ���˳���ԤԼ���̣�ԭ�ж��������ĺͱ��汣����
 
-唯一年度 Bundle 一次提交保存四条关联预约，日期为首次预约及其后第 3、6、9 个月，后续日期遇周末顺延到周一，确认前显示实际日期；预约仍需服务团队确认。全年价格按四次分摊，每次服务后结算，不会在创建预约时声称完成支付。普通或化学清洗由技师检查后记录；维修额外费用由技师报价并记录说明，无需客户另行确认。当前价格、参考来源和交付边界见 [SERVICE-PRICING.md](coolcare/SERVICE-PRICING.md)。
+Ψһ��� Bundle һ���ύ������������ԤԼ������Ϊ�״�ԤԼ������ 3��6��9 ���£�������������ĩ˳�ӵ���һ��ȷ��ǰ��ʾʵ�����ڣ�ԤԼ��������Ŷ�ȷ�ϡ�ȫ��۸��Ĵη�̯��ÿ�η������㣬�����ڴ���ԤԼʱ�������֧������ͨ��ѧ��ϴ�ɼ�ʦ�����¼��ά�޶�������ɼ�ʦ���۲���¼˵��������ͻ�����ȷ�ϡ���ǰ�۸񡢲ο���Դ�ͽ����߽�� [SERVICE-PRICING.md](coolcare/SERVICE-PRICING.md)��
 
-订单固定经过 `Submitted → Confirmed → Assigned → On The Way → In Progress → Completed`。Admin 必须先在 Orders 批准，再在 Dispatch 单独触发自动派单；系统先排除不可用或时间冲突的技师，再优先匹配相同邮编／邮区，随后按当天负载、最久未派单时间和 technician ID 选择。位置使用当天前一单地址或技师 base postal code；邮区只是区域接近度，不表示实际公里数或行车时间。拒绝订单必须填写客户可见原因并进入 Rejected；管理员可修订原因，保留版本和审计。取消、拒绝、过期和完成都会释放团队容量。新建 Submitted 请求默认 48 小时未确认后自动过期（`BOOKING_CONFIRMATION_HOURS` 可配置为 1–720 小时）；迁移前已有订单不补设期限，已确认/已派单订单不会被自动过期。
+�����̶����� `Submitted �� Confirmed �� Assigned �� On The Way �� In Progress �� Completed`��Admin �������� Orders ��׼������ Dispatch ���������Զ��ɵ���ϵͳ���ų������û�ʱ���ͻ�ļ�ʦ��������ƥ����ͬ�ʱ࣯��������󰴵��츺�ء����δ�ɵ�ʱ��� technician ID ѡ��λ��ʹ�õ���ǰһ����ַ��ʦ base postal code������ֻ������ӽ��ȣ�����ʾʵ�ʹ��������г�ʱ�䡣�ܾ�����������д�ͻ��ɼ�ԭ�򲢽��� Rejected������Ա���޶�ԭ�򣬱����汾����ơ�ȡ�����ܾ������ں���ɶ����ͷ��Ŷ��������½� Submitted ����Ĭ�� 48 Сʱδȷ�Ϻ��Զ����ڣ�`BOOKING_CONFIRMATION_HOURS` ������Ϊ 1�C720 Сʱ����Ǩ��ǰ���ж������������ޣ���ȷ��/���ɵ��������ᱻ�Զ����ڡ�
 
-Owner/Admin 可邀请 Technician 并管理其可用状态；Owner 还可管理 Admin，并把唯一 Owner 身份原子转交给另一名 Active Admin。管理员可修改入库/出库数量、时间及描述，修改保留审计记录并同步库存。技师可在自己的工单内出库；配件按每台空调用量标准提示超量，并可查看相关地址及年度 Bundle 维护报告。清洗方法评估记录同样有权限、并发版本和修改审计。
+Owner/Admin ������ Technician �����������״̬��Owner ���ɹ��� Admin������Ψһ Owner ����ԭ��ת������һ�� Active Admin������Ա���޸����/����������ʱ�估�������޸ı�����Ƽ�¼��ͬ����档��ʦ�����Լ��Ĺ����ڳ��⣻�����ÿ̨�յ�������׼��ʾ���������ɲ鿴��ص�ַ����� Bundle ά�����档��ϴ����������¼ͬ����Ȩ�ޡ������汾���޸���ơ�
 
-运行 `npm run db:up` 会保留旧数据并更新所需数据表，同时启动本机测试邮箱。预约后打开 **http://localhost:8025** 查看自动生成的邮件。该邮箱用于课堂演示，**不会向客户外部邮箱投递**；正式投递需要在本机配置经过验证的 SMTP 发件账号。详细规则、数据表及配置见 [BOOKING-WORKFLOWS.md](coolcare/BOOKING-WORKFLOWS.md)。
+���� `npm run db:up` �ᱣ�������ݲ������������ݱ���ͬʱ���������������䡣ԤԼ��� **http://localhost:8025** �鿴�Զ����ɵ��ʼ������������ڿ�����ʾ��**������ͻ��ⲿ����Ͷ��**����ʽͶ����Ҫ�ڱ������þ�����֤�� SMTP �����˺š���ϸ�������ݱ������ü� [BOOKING-WORKFLOWS.md](coolcare/BOOKING-WORKFLOWS.md)��
 
-## 验证
+## ��֤
 
-本轮仓库与数据整理已验证：脱离旧目录的安装配置、非破坏性迁移、合成数据、事务回滚测试、TypeScript 和完整构建。员工流程的真实 MySQL 集成测试覆盖邀请安全、Owner 唯一性、审核及派单、轮询、工单状态顺序及最后一个容量名额的并发竞争。完整私人备份保存在本机 `.local/backups/`，不提交 GitHub。
+���ֲֿ���������������֤�������Ŀ¼�İ�װ���á����ƻ���Ǩ�ơ��ϳ����ݡ�����ع����ԡ�TypeScript ������������Ա�����̵���ʵ MySQL ���ɲ��Ը������밲ȫ��Owner Ψһ�ԡ���˼��ɵ�����ѯ������״̬˳�����һ����������Ĳ�������������˽�˱��ݱ����ڱ��� `.local/backups/`�����ύ GitHub��
 
 ```powershell
 npm test
@@ -128,27 +128,27 @@ node coolcare/node_modules/typescript/bin/tsc --noEmit -p coolcare/tsconfig.json
 npm run build
 ```
 
-验证覆盖客户与记录归属、CSRF、事务、幂等重试、地址保留与默认/归档、账号切换保护、预约限制、年度套餐、库存审计、时间戳时区及私有照片 HTTP 权限；还覆盖助手草稿恢复、员工邀请、Owner 转交、审核、拒绝、派单、重新派单、技师状态和团队容量并发锁。扩展功能需要检查年度续购并发与重复提交、完成订单自动发分、积分抵扣、报表汇总，以及按独立上门记录保存的客户评价和技师绩效。数据库测试通过事务回滚或按测试记录归属清理，自增编号可能出现空号。测试数量以当前命令输出为准。
+��֤���ǿͻ����¼������CSRF�������ݵ����ԡ���ַ������Ĭ��/�鵵���˺��л�������ԤԼ���ơ�����ײ͡������ơ�ʱ���ʱ����˽����Ƭ HTTP Ȩ�ޣ����������ֲݸ�ָ���Ա�����롢Owner ת������ˡ��ܾ����ɵ��������ɵ�����ʦ״̬���Ŷ���������������չ������Ҫ�����������������ظ��ύ����ɶ����Զ����֡����ֵֿۡ��������ܣ��Լ����������ż�¼����Ŀͻ����ۺͼ�ʦ��Ч�����ݿ����ͨ������ع��򰴲��Լ�¼����������������ſ��ܳ��ֿպš����������Ե�ǰ�������Ϊ׼��
 
-本轮界面回归重点：桌面和窄屏切换 FAQ/Booking 并确认未保存地址不丢失；核对完成/未完成、四次套餐访问及 CSV 的相同筛选结果；检查客户跨期去重、评价编辑和未评价空值；确认技师仅能查看自己的评分曲线；验证操作日志日期边界、浏览器返回后的筛选恢复以及 Owner/Admin 导出权限。自动化覆盖不能代替实际页面检查，执行结果应按当次测试记录说明。
+���ֽ���ع��ص㣺�����խ���л� FAQ/Booking ��ȷ��δ�����ַ����ʧ���˶����/δ��ɡ��Ĵ��ײͷ��ʼ� CSV ����ͬɸѡ��������ͻ�����ȥ�ء����۱༭��δ���ۿ�ֵ��ȷ�ϼ�ʦ���ܲ鿴�Լ����������ߣ���֤������־���ڱ߽硢��������غ��ɸѡ�ָ��Լ� Owner/Admin ����Ȩ�ޡ��Զ������ǲ��ܴ���ʵ��ҳ���飬ִ�н��Ӧ�����β��Լ�¼˵����
 
-此前客户流程的浏览器检查覆盖桌面及 390px 手机布局：最近预约、年度分组与详情切换、资料保存后重新读取、新增/默认/编辑/归档地址、保留订单原地址、重复预约日期禁用、英文日历与键盘选日、真实改期/取消及历史分流、助手创建四次年度预约、报告时长、缺失照片提示及真实文件放大。日期格式测试使用中文语言环境和多个系统时区，日期控件固定显示英文。测试账号、地址、订单和照片均独立于已有数据，验证后清理。
+��ǰ�ͻ����̵��������鸲�����漰 390px �ֻ����֣����ԤԼ����ȷ����������л������ϱ�������¶�ȡ������/Ĭ��/�༭/�鵵��ַ����������ԭ��ַ���ظ�ԤԼ���ڽ��á�Ӣ�����������ѡ�ա���ʵ����/ȡ������ʷ���������ִ����Ĵ����ԤԼ������ʱ����ȱʧ��Ƭ��ʾ����ʵ�ļ��Ŵ����ڸ�ʽ����ʹ���������Ի����Ͷ��ϵͳʱ�������ڿؼ��̶���ʾӢ�ġ������˺š���ַ����������Ƭ���������������ݣ���֤��������
 
-四项扩展功能的浏览器检查应覆盖桌面及 390px 手机布局：My Plans 查看季度服务、按当前目录价格手动续购并生成四次预约；客户提交评价、管理员查看评价汇总及技师查看自己的评价；完成订单后自动发分、预约抵扣和管理员积分调整；Reports & Analytics 筛选、服务金额汇总及 CSV 导出。验收使用独立测试账号和订单，不执行外部交易，也不包含自动续费或生产部署验收。
+������չ���ܵ���������Ӧ�������漰 390px �ֻ����֣�My Plans �鿴���ȷ��񡢰���ǰĿ¼�۸��ֶ������������Ĵ�ԤԼ���ͻ��ύ���ۡ�����Ա�鿴���ۻ��ܼ���ʦ�鿴�Լ������ۣ���ɶ������Զ����֡�ԤԼ�ֿۺ͹���Ա���ֵ�����Reports & Analytics ɸѡ����������ܼ� CSV ����������ʹ�ö��������˺źͶ�������ִ���ⲿ���ף�Ҳ�������Զ����ѻ������������ա�
 
-PDF 功能调用浏览器打印窗口并提供专用打印样式；本轮未验收操作系统打印/PDF 对话框。客服邮件链接只预填收件人和订单编号，未发送外部邮件。本轮属于客户流程验收，不代表生产环境部署验收。
+PDF ���ܵ����������ӡ���ڲ��ṩר�ô�ӡ��ʽ������δ���ղ���ϵͳ��ӡ/PDF �Ի��򡣿ͷ��ʼ�����ֻԤ���ռ��˺Ͷ�����ţ�δ�����ⲿ�ʼ����������ڿͻ��������գ����������������������ա�
 
-## 技师服务更新与再次上门
+## ��ʦ����������ٴ�����
 
-My Jobs 和 Service Reports 提供统一的 **Service updates and outcome**：技师可记录延长服务时间、缺件原因、再次上门预约、再次上门开始/完成及维修额外费用。延长时间按 15 分钟递增，每次最多 120 分钟，须在 18:00 前结束；服务端同时检查团队容量和该技师的其他预约，冲突时要求改期或记录再次上门。再次上门保留在原工单、原报告中，不创建断开的第二份报告；初次服务完成时间不被覆盖。
+My Jobs �� Service Reports �ṩͳһ�� **Service updates and outcome**����ʦ�ɼ�¼�ӳ�����ʱ�䡢ȱ��ԭ���ٴ�����ԤԼ���ٴ����ſ�ʼ/��ɼ�ά�޶�����á��ӳ�ʱ�䰴 15 ���ӵ�����ÿ����� 120 ���ӣ����� 18:00 ǰ�����������ͬʱ����Ŷ������͸ü�ʦ������ԤԼ����ͻʱҪ����ڻ��¼�ٴ����š��ٴ����ű�����ԭ������ԭ�����У��������Ͽ��ĵڶ��ݱ��棻���η������ʱ�䲻�����ǡ�
 
-维修额外费用由负责技师直接填写金额和说明，不需要客户或管理员另行批准；费用独立于原预约最低费用，保存不代表收到付款。所有服务更新保留不可覆盖的事件记录和重复提交保护，客户和管理员可以在订单/报告中查看。技师 Profile 可维护六位新加坡 base postal code，供按位置派单使用。迁移 `21-service-progress.sql` 保留已有数据；使用正常 `npm run db:up` 应用。
+ά�޶�������ɸ���ʦֱ����д����˵��������Ҫ�ͻ������Ա������׼�����ö�����ԭԤԼ��ͷ��ã����治�����յ�������з�����±������ɸ��ǵ��¼���¼���ظ��ύ�������ͻ��͹���Ա�����ڶ���/�����в鿴����ʦ Profile ��ά����λ�¼��� base postal code������λ���ɵ�ʹ�á�Ǩ�� `21-service-progress.sql` �����������ݣ�ʹ������ `npm run db:up` Ӧ�á�
 
 ## GitHub
 
-组员使用 Codex 时，先在各自电脑 clone 并打开这个仓库；根目录 `AGENTS.md` 提供统一的项目约定。所有开发在 `coolcare/` 进行，旧项目不会出现在新的 clone 中。
+��Աʹ�� Codex ʱ�����ڸ��Ե��� clone ��������ֿ⣻��Ŀ¼ `AGENTS.md` �ṩͳһ����ĿԼ�������п����� `coolcare/` ���У�����Ŀ����������µ� clone �С�
 
-首次获取：
+�״λ�ȡ��
 
 ```powershell
 git clone https://github.com/YuZixiong3549521/3851b.git
@@ -159,15 +159,15 @@ npm run db:sample
 npm start
 ```
 
-按项目负责人的最新约定，后续通过验证的更新直接提交并推送到 `main`，除非另行要求使用分支或 Pull Request。推送前先获取并整合远端改动，不强制推送；拉取前先提交或妥善保存当前修改。依赖有变化时重新安装对应依赖，数据库迁移有变化时运行 `npm run db:up`。
+����Ŀ�����˵�����Լ��������ͨ����֤�ĸ���ֱ���ύ�����͵� `main`����������Ҫ��ʹ�÷�֧�� Pull Request������ǰ�Ȼ�ȡ������Զ�˸Ķ�����ǿ�����ͣ���ȡǰ���ύ�����Ʊ��浱ǰ�޸ġ������б仯ʱ���°�װ��Ӧ���������ݿ�Ǩ���б仯ʱ���� `npm run db:up`��
 
-**每位组员的本机数据库是独立的。** GitHub 同步代码、建表/迁移文件和合成数据生成脚本，不会同步本机创建的订单、Docker 数据卷、登录会话或私人备份。课堂演示可导入 `coolcare/postman/CoolCare-Booking-Demo.postman_collection.json`，在自己的机器上创建订单，再运行 `node coolcare/scripts/verify-booking.mjs <订单编号>` 直接查询 MySQL。详见 `coolcare/postman/README.md`。
+**ÿλ��Ա�ı������ݿ��Ƕ����ġ�** GitHub ͬ�����롢����/Ǩ���ļ��ͺϳ��������ɽű�������ͬ�����������Ķ�����Docker ���ݾ�����¼�Ự��˽�˱��ݡ�������ʾ�ɵ��� `coolcare/postman/CoolCare-Booking-Demo.postman_collection.json`�����Լ��Ļ����ϴ��������������� `node coolcare/scripts/verify-booking.mjs <�������>` ֱ�Ӳ�ѯ MySQL����� `coolcare/postman/README.md`��
 
-统一 UI 约定位于 `coolcare/UI-ARCHITECTURE.md`：各端复用 shadcn/ui、Base UI、Tailwind 和 Lucide。
+ͳһ UI Լ��λ�� `coolcare/UI-ARCHITECTURE.md`�����˸��� shadcn/ui��Base UI��Tailwind �� Lucide��
 
-`.gitignore` 排除本机凭据、依赖、生成文件、IDE 缓存及旧上传参考目录。原上传文件可从历史提交查阅，不再占据当前分支的项目列表。同步更新使用 `git pull --ff-only origin main`，首次运行按上方安装步骤准备本机环境。
+`.gitignore` �ų�����ƾ�ݡ������������ļ���IDE ���漰���ϴ��ο�Ŀ¼��ԭ�ϴ��ļ��ɴ���ʷ�ύ���ģ�����ռ�ݵ�ǰ��֧����Ŀ�б���ͬ������ʹ�� `git pull --ff-only origin main`���״����а��Ϸ���װ����׼������������
 
-Azure 部署和运行配置见 [AZURE-DEPLOYMENT.md](coolcare/AZURE-DEPLOYMENT.md)。当前会话保存在内存，重启会退出登录；外部邮件、自动找回密码及社交登录不属于本次演示范围。完整演示步骤及限制见 [PRESENTATION-CHECKLIST.md](coolcare/PRESENTATION-CHECKLIST.md)。
+Azure ������������ü� [AZURE-DEPLOYMENT.md](coolcare/AZURE-DEPLOYMENT.md)����ǰ�Ự�������ڴ棬�������˳���¼���ⲿ�ʼ����Զ��һ����뼰�罻��¼�����ڱ�����ʾ��Χ��������ʾ���輰���Ƽ� [PRESENTATION-CHECKLIST.md](coolcare/PRESENTATION-CHECKLIST.md)��
 
 Technician parts issuing supports up to 30 distinct part rows with separate quantities and descriptions. `POST /api/technician/jobs/:jobId/stock-out-batch` accepts `{ request_id, items }`; all stock changes are committed together or rolled back, with idempotent retries. The existing single-part endpoint remains supported.
 
@@ -177,7 +177,7 @@ Cleaning is SGD 50 per unit per visit, with a planned 45 minutes per unit; Repai
 
 The customer form separates service issues from **Other remarks** (for example, a preferred technician). A preference does not override availability. Rejected and expired requests have a **Book again** action. Customer booking/report views show technician extensions, return-visit records and additional repair quotations. Admin Orders highlights unconfirmed requests in red, shows expiry deadlines, and lets staff correct rejection reasons without erasing the audit.
 
-Run the normal `npm run db:up` to apply migrations 19–22. They preserve existing bookings and add pricing tiers, deadlines, postal dispatch fields, service-progress events and customer notices. Git shares these schema/code changes; it does not transfer another developer’s local orders.
+Run the normal `npm run db:up` to apply migrations 19�C22. They preserve existing bookings and add pricing tiers, deadlines, postal dispatch fields, service-progress events and customer notices. Git shares these schema/code changes; it does not transfer another developer��s local orders.
 
 ## Return visit approval workflow
 Run `npm run db:up` to apply migration 23; existing work orders/reports are retained. Technicians request a return during In Progress, which closes that visit and places the original booking in Awaiting return arrangement (not History). Admin Orders has a Return visits queue: approve and notify the customer, or ask for a new time. The customer receives an in-app notice and chooses a weekday at least 14 calendar days ahead (Singapore time) in My Bookings. Slot capacity is checked on selection and again on admin confirmation. Admin confirms and selects an available technician; overlapping work is rejected. The same work order becomes Return visit, then Start service makes it In Progress. End service completes it; another return requirement can repeat the process. Technician self-scheduling APIs are rejected. Retained visit snapshots and service event history remain attached to the same report. Notifications are in-app; this workflow does not send an external email.
@@ -186,4 +186,4 @@ Run `npm run db:up` to apply migration 23; existing work orders/reports are reta
 
 Cloud startup and environment settings: [coolcare/AZURE-DEPLOYMENT.md](coolcare/AZURE-DEPLOYMENT.md). Root `npm start` still starts local development; the deployed coolcare directory uses `npm start` for production.
 
-线上补充课堂数据使用 [COURSEWORK-DATA.md](coolcare/COURSEWORK-DATA.md) 中的一次性追加工具：保留原数据，新增 50 笔完整关联的模拟订单，同一批次重复执行不会重复导入。GitHub 自动部署只上传程序，不会执行该工具或同步本机数据库；由 Azure 操作者在部署后明确执行预览、试运行和导入。
+���ϲ����������ʹ�� [COURSEWORK-DATA.md](coolcare/COURSEWORK-DATA.md) �е�һ����׷�ӹ��ߣ�����ԭ���ݣ����� 50 ������������ģ�ⶩ����ͬһ�����ظ�ִ�в����ظ����롣GitHub �Զ�����ֻ�ϴ����򣬲���ִ�иù��߻�ͬ���������ݿ⣻�� Azure �������ڲ������ȷִ��Ԥ���������к͵��롣

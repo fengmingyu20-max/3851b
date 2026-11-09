@@ -8,12 +8,6 @@ import { apiFetch as fetch, loginErrorMessage } from '../api';
 import React, { useState, useEffect } from 'react';
 import { PageRoute, User } from '../types';
 
-const demoAccounts = [
-  { label: 'Alice Tan (Customer)', email: 'alice.tan@coolcare.demo' },
-  { label: 'Chris Lim (Technician)', email: 'chris.lim@coolcare.demo' },
-  { label: 'Norshida (Admin)', email: 'norshida@coolcare.demo' },
-] as const;
-
 interface LoginPageProps {
   onNavigate: (page: PageRoute, hash?: string) => void;
   onLoginSuccess: (user: User) => void;
@@ -47,13 +41,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     e.preventDefault();
     if (onClearNotice) onClearNotice();
     onNavigate('home');
-  };
-
-  const handleQuickLogin = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setShowPassword(false);
-    setErrorMessage('');
-    document.getElementById('login-password')?.focus();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -221,7 +208,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   autoComplete="current-password"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  placeholder="••••••••"
+                  placeholder="????????"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-ac-outline-variant bg-ac-surface-container-lowest text-ac-on-surface focus:outline-none focus:border-ac-primary focus:ring-2 focus:ring-ac-primary/20 text-sm transition-all"
@@ -267,30 +254,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </Button>
           </form>
 
-          <section aria-labelledby="demo-sign-in-heading" className="mt-6 border-t border-ac-outline-variant/30 pt-4">
-            <h2 id="demo-sign-in-heading" className="text-center text-sm font-medium text-ac-on-surface-variant">
-              Demo Fast Sign-In
-            </h2>
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {demoAccounts.map((account, index) => (
-                <Button
-                  key={account.email}
-                  type="button"
-                  variant="outline"
-                  disabled={isLoading}
-                  aria-pressed={email === account.email}
-                  onClick={() => handleQuickLogin(account.email)}
-                  className={`min-h-11 w-full whitespace-normal rounded-lg border-ac-outline-variant/40 bg-ac-primary-fixed/30 px-3 py-3 text-xs font-semibold text-ac-primary hover:bg-ac-primary-fixed/60 ${index === 2 ? 'sm:col-span-2' : ''}`}
-                >
-                  {account.label}
-                </Button>
-              ))}
-            </div>
-            <p className="mt-3 text-center text-xs leading-5 text-ac-on-surface-variant">
-              Choose an account, enter its password, then click Sign In.
-            </p>
-          </section>
-
           {/* Link to Registration */}
           <div className="mt-6 text-center pt-4 border-t border-ac-outline-variant/30">
             <p className="text-sm text-ac-on-surface-variant">
@@ -314,7 +277,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </SiteIcon>
             Your Service Account
           </span>
-          <span>•</span>
+          <span>?</span>
           <span className="flex items-center gap-1">
             <SiteIcon className=" text-[16px] text-ac-primary">
               verified_user
