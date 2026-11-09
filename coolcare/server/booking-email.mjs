@@ -6,7 +6,7 @@ import { createAzureMailTransport } from './azure-email.mjs';
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 export function mailMode() { return ['smtp', 'disabled'].includes(process.env.MAIL_MODE) ? process.env.MAIL_MODE : 'local'; }
 
-export const bookingMailEventTypes = Object.freeze(['booking.assigned', 'booking.cancelled', 'booking.rescheduled', 'booking.rejected', 'booking.rejection_updated', 'booking.rebooked', 'return.invited', 'return.requested', 'return.scheduled']);
+export const bookingMailEventTypes = Object.freeze(['booking.assigned', 'booking.completed', 'booking.cancelled', 'booking.rescheduled', 'booking.rejected', 'booking.rejection_updated', 'booking.rebooked', 'return.invited', 'return.requested', 'return.scheduled']);
 export function bookingAppointment(booking) {
   const value = booking.preferred_service_date;
   return { date: value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10), start: booking.slot_start, end: booking.slot_end, timeSlot: booking.preferred_time_slot };
@@ -52,6 +52,41 @@ export function buildBookingChangeMail(booking, eventType, { previousAppointment
   };
 }
 
+// Called inside the existing service/report transaction. A saved draft, an ended
+// visit without its report, or an unresolved return must not notify the customer.
+export async function enqueueCompletedBookingEmail(connection, bookingId) {
+  const [[ready]] = await connection.execute(`SELECT w.job_id AS completionJobId FROM booking b
+    JOIN work_order w ON w.booking_id=b.booking_id
+    JOIN assignment a ON a.assignment_id=w.assignment_id AND a.booking_id=b.booking_id
+    JOIN service_report r ON r.job_id=w.job_id
+    LEFT JOIN service_progress p ON p.job_id=w.job_id
+    WHERE b.booking_id=? AND b.booking_status='Completed' AND w.current_status='Completed'
+      AND a.assignment_status NOT IN ('Declined','Cancelled','Reassigned')
+      AND r.submitted_time IS NOT NULL AND r.completed_at IS NOT NULL
+      AND (p.follow_up_status IS NULL OR p.follow_up_status IN ('None','Completed')) LIMIT 1`, [bookingId]);
+  if (!ready) return null;
+  return enqueueBookingLifecycleEmail(connection, bookingId, 'booking.completed', { eventKey: `booking.completed:${bookingId}` });
+}
+
+export function buildCompletedBookingMail(booking) {
+  const reference = bookingReference(booking.booking_id, booking.created_at);
+  const rawOrigin = process.env.WEB_ORIGIN || (process.env.WEBSITE_HOSTNAME ? `https://${process.env.WEBSITE_HOSTNAME}` : '');
+  let origin = '';
+  try {
+    const url = new URL(rawOrigin);
+    if (url.protocol === 'https:' && !url.username && !url.password && url.pathname === '/' && !url.search && !url.hash) origin = url.origin;
+  } catch { /* Without a public origin, give navigation instructions instead. */ }
+  const report = origin ? `${origin}/customer/history/${Number(booking.booking_id)}` : '';
+  const feedback = origin ? `${origin}/customer/feedback` : '';
+  const intro = 'Your service is complete and your technician has submitted the service report.';
+  const next = 'Please sign in to your CoolCare customer account to view your service report in Service History and leave a review in Service Feedback. Thank you for choosing CoolCare.';
+  return {
+    subject: `CoolCare ${reference}: Service completed`,
+    text: `Hi ${booking.full_name},\n\n${intro}\nBooking reference: ${reference}\nServices: ${booking.services}\n\n${next}${report ? `\nView service report: ${report}\nLeave a review: ${feedback}` : ''}\n\nCoolCare Admin Team`,
+    html: `<div style="font:16px Arial,sans-serif;max-width:600px;color:#172b4d"><h1>Service completed</h1><p>Hi ${escapeHtml(booking.full_name)},</p><p>${intro}</p><p>Booking reference: ${escapeHtml(reference)}<br>Services: ${escapeHtml(booking.services)}</p><p>${next}</p>${report ? `<p><a href="${escapeHtml(report)}">View service report</a></p><p><a href="${escapeHtml(feedback)}">Leave a review</a></p>` : ''}<p>CoolCare Admin Team</p></div>`,
+  };
+}
+
 export function buildAssignedBookingMail(booking, technicianName) {
   const date = new Intl.DateTimeFormat('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${booking.preferred_service_date}T00:00:00Z`));
   const reference = bookingReference(booking.booking_id, booking.created_at);
@@ -93,7 +128,7 @@ export async function enqueueBookingLifecycleEmail(connection,bookingId,eventTyp
     LEFT JOIN booking_service bs ON bs.booking_id=b.booking_id WHERE b.booking_id=?
     GROUP BY b.booking_id,b.created_at,b.booking_status,b.preferred_service_date,b.preferred_time_slot,b.slot_start,b.slot_end,b.estimated_duration_minutes,u.full_name,u.email,sa.address_line`,[bookingId]);
   if(!booking)throw new Error('Cannot queue mail for a missing booking.');
-  const mail=eventType==='booking.assigned' ? buildAssignedBookingMail(booking,technicianName) : buildBookingChangeMail(booking,eventType,options);
+  const mail=eventType==='booking.assigned' ? buildAssignedBookingMail(booking,technicianName) : eventType==='booking.completed' ? buildCompletedBookingMail(booking) : buildBookingChangeMail(booking,eventType,options);
   return enqueueMail(connection,{eventKey,eventType,bookingId,recipient:booking.email,...mail});
 }
 

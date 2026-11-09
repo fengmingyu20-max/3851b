@@ -13,6 +13,7 @@ test('ending service allows a pending report; submitted reports still require va
 function database({owner=true,failReport=false,failReward=false,failBonus=false,previous=null,status='In Progress'}={}){
  const calls=[];const conn={beginTransaction:async()=>calls.push('begin'),commit:async()=>calls.push('commit'),rollback:async()=>calls.push('rollback'),release:()=>calls.push('release'),execute:async(sql,args)=>{
  calls.push(sql);
+ if(sql.startsWith('SELECT w.job_id AS completionJobId'))return [[]];
  if(sql.startsWith('SELECT t.technician_id AS technicianId'))return [[{technicianId:7,fullName:'Test technician',userId:7,isLead:1}]];
  if(sql.startsWith('SELECT booking_id'))return [[{booking_id:2}]];
  if(sql.startsWith('SELECT w.assignment_id'))return [[{report_id:1,technician_id:7,started_at:null}]];
@@ -40,4 +41,4 @@ test('reusing a request ID with changed content conflicts',async()=>{const db=da
 test('a completed job cannot be completed again with a new request',async()=>{const db=database({status:'Completed'});await assert.rejects(updateTechnicianJobStatus(db,7,1,payload()),e=>e.status===409);});
 
 test('assigned jobs can start service directly',async()=>{const db=database({status:'Assigned'});await updateTechnicianJobStatus(db,7,1,{requestId:randomUUID(),expectedStatus:'Assigned',status:'In Progress'});assert.ok(db.calls.includes('commit'));});
-test('end service records completion without submitting report text',async()=>{const db=database();await updateTechnicianJobStatus(db,7,1,{...payload(),report:undefined});assert.ok(db.calls.includes('commit'));assert.ok(db.calls.some(s=>s.includes('completed_at')));assert.ok(!db.calls.some(s=>s.includes('submitted_time')));});
+test('end service records completion without submitting report text',async()=>{const db=database();await updateTechnicianJobStatus(db,7,1,{...payload(),report:undefined});assert.ok(db.calls.includes('commit'));assert.ok(db.calls.some(s=>s.includes('completed_at')));assert.ok(!db.calls.some(s=>s.includes('INSERT INTO service_report')&&s.includes('submitted_time')));});

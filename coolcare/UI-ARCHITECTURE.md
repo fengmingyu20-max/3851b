@@ -474,3 +474,5 @@ Business operation/request or history identities deduplicate retries. A later ch
 never rewrites an earlier queued snapshot. Failed/unauthorized changes and no-op
 requests do not queue mail. Admin order email history, failed-delivery badges and
 manual retry include these event types using the existing UI and authentication.
+
+Service completion email is queued with technician completion or late report submission, only after a submitted, completed report exists and any return is resolved. One booking.completed event per booking uses the existing outbox, worker and Admin retry controls. It directs customers to authenticated Service History and Service Feedback; no report contents or public access tokens are emailed. Existing Azure mail settings apply; no migration or historical backfill is needed.

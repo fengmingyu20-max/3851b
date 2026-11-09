@@ -1,3 +1,4 @@
+import { enqueueCompletedBookingEmail } from './booking-email.mjs';
 import {assignmentTeam,memberSql} from './teams.mjs';
 import {visitCompletionBlockReason,visitCompletionTimingNotice,serviceTimingTestMode} from './visit-start.mjs';
 import { bookingReference, withBookingReference } from './booking-reference.mjs';
@@ -186,6 +187,7 @@ export async function saveReport(pool, userId, jobId, raw) {
         jobId,
       ],
     );
+    await enqueueCompletedBookingEmail(c,w.booking_id);
     await c.commit();
     return { success: true, replayed: false };
   } catch (e) {

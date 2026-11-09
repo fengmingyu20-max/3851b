@@ -5,6 +5,9 @@ import { randomUUID } from 'node:crypto';
 import mysql from 'mysql2/promise';
 import { changePublicBooking } from '../server/public-site.mjs';
 import { rejectBooking, editRejectionReason, rescheduleAdminBooking } from '../server/admin-operations.mjs';
+import { getReport, saveReport } from '../server/technician-pages.mjs';
+import { updateTechnicianJobStatus } from '../server/technician.mjs';
+import { enqueueCompletedBookingEmail } from '../server/booking-email.mjs';
 import { updateReturn } from '../server/return-visits.mjs';
 import { deliverPendingBookingEmails } from '../server/booking-email.mjs';
 import { listBookingEmails, retryBookingEmail } from '../server/admin-workspace.mjs';
@@ -29,7 +32,7 @@ test('real booking and return transactions create one committed notification per
   const user = { id: customer.user_id };
   const [[actor]] = await pool.query("SELECT user_id AS userId FROM admin_profile WHERE access_level='Owner'");
   const [[service]] = await pool.query("SELECT service_id FROM simple_service_catalog WHERE code='repair'");
-  const [[tech]] = await pool.query('SELECT technician_id FROM technician ORDER BY technician_id LIMIT 1');
+  const [[tech]] = await pool.query('SELECT technician_id,user_id FROM technician ORDER BY technician_id LIMIT 1');
   let sequence = 0;
   const make = async (status = 'Submitted') => {
     const date = nextWeekday(addCalendarDays(minimumBookingDate(), 100 + ++sequence * 35));
@@ -123,4 +126,40 @@ test('real booking and return transactions create one committed notification per
     assert.equal((await mails(b.id)).length, before);
     assert.equal((await listBookingEmails(pool, b.id)).rows.length, 5);
   });
+  await t.test('completion mail commits with service status, waits for late reports and deduplicates', async () => {
+    const b = await make('In Progress');
+    const [a] = await pool.execute("INSERT INTO assignment(booking_id,technician_id,assigned_by_admin_id,assignment_status) VALUES (?,?,?,'Accepted')", [b.id, tech.technician_id, actor.userId]);
+    const [w] = await pool.execute("INSERT INTO work_order(booking_id,assignment_id,appointment_date,appointment_time,current_status) VALUES (?,?,?,'09:00:00','In Progress')", [b.id, a.insertId, b.date + ' 09:00:00']);
+    await pool.execute("INSERT INTO service_report(job_id,work_performed,started_at) VALUES (?,'',DATE_SUB(DATE_ADD(UTC_TIMESTAMP(),INTERVAL 8 HOUR),INTERVAL 1 HOUR))", [w.insertId]);
+    // Ending alone is allowed, but must not promise a report is available.
+    const input = { requestId: randomUUID(), expectedStatus: 'In Progress', status: 'Completed' };
+    await updateTechnicianJobStatus(pool, tech.user_id, w.insertId, input);
+    await updateTechnicianJobStatus(pool, tech.user_id, w.insertId, input);
+    assert.equal(await status(b.id), 'Completed'); assert.equal((await mails(b.id)).length, 0);
+    const c = await pool.getConnection();
+    try {
+      await c.beginTransaction();
+      await c.execute('UPDATE service_report SET submitted_time=UTC_TIMESTAMP() WHERE job_id=?', [w.insertId]);
+      await c.execute("INSERT INTO service_progress(job_id,follow_up_status) VALUES (?,'Required')", [w.insertId]);
+      assert.equal(await enqueueCompletedBookingEmail(c, b.id), null);
+      await c.execute("UPDATE service_progress SET follow_up_status='Completed' WHERE job_id=?", [w.insertId]);
+      await enqueueCompletedBookingEmail(c, b.id); await c.rollback();
+      assert.equal((await mails(b.id)).length, 0, 'a rolled back submission must not leave mail');
+    } catch (e) { await c.rollback(); throw e; } finally { c.release(); }
+    const report = { workPerformed: 'Inspected and repaired the unit', checklist: 'Cooling tested successfully' };
+    const initial = await getReport(pool, tech.user_id, w.insertId);
+    const submission = { requestId: randomUUID(), expectedVersion: initial.version, report };
+    await pool.query("CREATE TRIGGER reject_completion_mail BEFORE INSERT ON booking_email_outbox FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='fixture failure'");
+    await assert.rejects(saveReport(pool, tech.user_id, w.insertId, submission));
+    await pool.query('DROP TRIGGER reject_completion_mail');
+    assert.equal((await getReport(pool, tech.user_id, w.insertId)).report.submittedAt, null);
+    await saveReport(pool, tech.user_id, w.insertId, submission);
+    await saveReport(pool, tech.user_id, w.insertId, submission);
+    const saved = await getReport(pool, tech.user_id, w.insertId);
+    await saveReport(pool, tech.user_id, w.insertId, { requestId: randomUUID(), expectedVersion: saved.version, report: { ...report, workPerformed: 'Updated inspection and repair details' } });
+    const rows = await mails(b.id); assert.equal(rows.length, 1); assert.equal(rows[0].event_type, 'booking.completed');
+    assert.match(rows[0].body_text, /service report/); assert.match(rows[0].body_text, /leave a review/);
+    assert.equal((await listBookingEmails(pool, b.id)).rows.length, 1);
+  });
+
 });

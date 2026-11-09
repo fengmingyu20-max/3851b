@@ -1,3 +1,4 @@
+import { enqueueCompletedBookingEmail } from './booking-email.mjs';
 import {visitTeamNameSql} from './teams.mjs';
 import {assignmentTeam,memberSql,assertTeamCanStart,teamStartBlockReason} from './teams.mjs';
 import {lockTechnicianRoster} from './scheduling.mjs';
@@ -222,6 +223,7 @@ export async function updateTechnicianJobStatus(pool,technicianUserId,jobId,raw)
     const notes={'On The Way':'Technician is travelling to the confirmed service address.','In Progress':'Technician arrived and started the service.','Completed':'Technician completed the service visit.'};
     await connection.execute(`INSERT INTO booking_status_history(booking_id,old_status,new_status,changed_by_user_id,change_note)
       VALUES (?,?,?,?,?)`,[work.booking_id,work.booking_status,data.status,technicianUserId,notes[data.status]+(data.status==='Completed'&&visitCompletionTimingNotice(work.serviceDate,new Date(),work.startedAt)?' Previously recorded early start retained; actual completion recorded without changing the scheduled appointment.':'')]);
+    if(data.status==='Completed')await enqueueCompletedBookingEmail(connection,work.booking_id);
     const result={jobId,bookingId:work.booking_id,status:data.status,replayed:false};
     await connection.execute('INSERT INTO technician_work_operation(request_id,job_id,actor_user_id,payload_hash,result_json) VALUES(?,?,?,?,?)',[data.requestId,jobId,technicianUserId,hash,JSON.stringify(result)]);
     await connection.commit();return result;
