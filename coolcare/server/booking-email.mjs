@@ -1,3 +1,4 @@
+import { bookingReminderKey, loadReminderBooking, reminderWindow } from './booking-reminder-policy.mjs';
 import { bookingReference } from './booking-reference.mjs';
 import nodemailer from 'nodemailer';
 import { randomUUID } from 'node:crypto';
@@ -6,7 +7,7 @@ import { createAzureMailTransport } from './azure-email.mjs';
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 export function mailMode() { return ['smtp', 'disabled'].includes(process.env.MAIL_MODE) ? process.env.MAIL_MODE : 'local'; }
 
-export const bookingMailEventTypes = Object.freeze(['booking.assigned', 'booking.completed', 'booking.cancelled', 'booking.rescheduled', 'booking.rejected', 'booking.rejection_updated', 'booking.rebooked', 'return.invited', 'return.requested', 'return.scheduled']);
+export const bookingMailEventTypes = Object.freeze(['booking.assigned', 'booking.completed', 'booking.reminder', 'booking.cancelled', 'booking.rescheduled', 'booking.rejected', 'booking.rejection_updated', 'booking.rebooked', 'return.invited', 'return.requested', 'return.scheduled']);
 export function bookingAppointment(booking) {
   const value = booking.preferred_service_date;
   return { date: value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10), start: booking.slot_start, end: booking.slot_end, timeSlot: booking.preferred_time_slot };
@@ -18,6 +19,7 @@ function appointmentText(appointment) {
 }
 export function buildBookingChangeMail(booking, eventType, { previousAppointment, appointment, reason, customerMessage } = {}) {
   const definitions = {
+    'booking.reminder': ['Reminder: your service is tomorrow', 'Your CoolCare service is scheduled for tomorrow. Please check the appointment time and service address below and ensure someone is available to provide access.'],
     'booking.cancelled': ['Booking cancelled', 'Your booking has been cancelled. This applies to the appointment shown below.'],
     'booking.rescheduled': ['Booking appointment changed', 'Your booking appointment has been changed.'],
     'booking.rejected': ['Booking request declined', 'The administrator has declined your booking request.'],
@@ -157,7 +159,7 @@ export function createMailTransport(mode = mailMode()) {
 
 // Claim one committed message at a time, then release the DB lock before SMTP.
 // SMTP reuses Message-ID. Neither provider guarantees exactly-once delivery after an ambiguous connection loss.
-export async function deliverPendingBookingEmails(pool, { transport, mode = mailMode(), limit = 10 } = {}) {
+export async function deliverPendingBookingEmails(pool, { transport, mode = mailMode(), limit = 10, now = () => new Date() } = {}) {
   if (mode === 'disabled') return 0;
   const sender = transport || createMailTransport(mode);
   let delivered = 0;
@@ -175,6 +177,17 @@ export async function deliverPendingBookingEmails(pool, { transport, mode = mail
     finally { c.release(); }
     if (!row) break;
     try {
+      if (row.event_type === 'booking.reminder') {
+        // Read current committed state immediately before sending, never hold a
+        // business lock during a provider request. Obsolete reminders are kept
+        // for audit as disabled and cannot be retried by the Admin controls.
+        const window = reminderWindow(now());
+        const booking = window.enabled ? await loadReminderBooking(pool, row.booking_id, window.date) : null;
+        if (!booking || bookingReminderKey(booking) !== row.event_key || booking.email !== row.recipient) {
+          await pool.execute("UPDATE booking_email_outbox SET status='Pending',delivery_mode='disabled',locked_at=NULL,last_error='REMINDER_SUPERSEDED' WHERE email_id=?", [row.email_id]);
+          continue;
+        }
+      }
       const info = await sender.sendMail({
         from: mode === 'local' ? 'CoolCare Demo <bookings@coolcare.test>' : process.env.MAIL_FROM,
         to: { address: row.recipient }, subject: row.subject, text: row.body_text, html: row.body_html, messageId: row.message_id,

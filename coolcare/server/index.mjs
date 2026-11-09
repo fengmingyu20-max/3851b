@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import { createApp } from './app.mjs';
+import { startBookingReminderWorker } from './booking-reminders.mjs';
 import { startBookingEmailWorker } from './booking-email.mjs';
 import { expireSubmittedBookings } from './order-expiry.mjs';
 import { productionConfig } from './production-config.mjs';
@@ -33,6 +34,7 @@ const app = createApp({
 });
 const port = Number(process.env.API_PORT || 3001);
 const stopMailWorker = startBookingEmailWorker(pool);
+const stopReminderWorker = startBookingReminderWorker(pool);
 let expiryRunning = null;
 function expireRequests() {
   if (!expiryRunning) expiryRunning = expireSubmittedBookings(pool)
@@ -49,6 +51,7 @@ async function stop() {
   server.close();
   clearInterval(expiryTimer);
   await expiryRunning;
+  await stopReminderWorker();
   await stopMailWorker();
   await pool.end();
   process.exit(0);

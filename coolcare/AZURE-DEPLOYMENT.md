@@ -270,3 +270,9 @@ redelivery; neither SMTP nor the Azure adapter promises exactly-once inbox deliv
 Admin order email history and retry controls include all the above types. No historic
 changes are backfilled and no local/disabled backlog is converted to external mail.
 Tests capture transport calls against a disposable MySQL DB and send no real mail.
+
+## Day-before appointment reminders
+
+The API checks for tomorrow's assigned visits every minute and on startup, from 09:00 Singapore time. Existing Azure mail configuration is reused; no new environment variables or migration are needed. The outbox worker verifies the current date, status, recipient, time and address again before sending or retrying a reminder. Cancelled, changed or overdue reminder snapshots are retained as disabled (REMINDER_SUPERSEDED), rather than sent late. Admin order email history includes these reminders.
+
+Keep App Service running for this background task: in coolcare-web-3851, open Settings > Configuration > General settings and enable Always On if the plan supports it. Do not change the service plan automatically. Without Always On, App Service may unload an idle application after 20 minutes, so this in-process schedule cannot promise delivery while the application is stopped. On restart it catches up only while it is still the day before the appointment. See https://learn.microsoft.com/azure/app-service/configure-common for the platform setting.

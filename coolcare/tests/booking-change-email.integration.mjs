@@ -8,6 +8,7 @@ import { rejectBooking, editRejectionReason, rescheduleAdminBooking } from '../s
 import { getReport, saveReport } from '../server/technician-pages.mjs';
 import { updateTechnicianJobStatus } from '../server/technician.mjs';
 import { enqueueCompletedBookingEmail } from '../server/booking-email.mjs';
+import { enqueueTomorrowBookingReminders } from '../server/booking-reminders.mjs';
 import { updateReturn } from '../server/return-visits.mjs';
 import { deliverPendingBookingEmails } from '../server/booking-email.mjs';
 import { listBookingEmails, retryBookingEmail } from '../server/admin-workspace.mjs';
@@ -160,6 +161,59 @@ test('real booking and return transactions create one committed notification per
     const rows = await mails(b.id); assert.equal(rows.length, 1); assert.equal(rows[0].event_type, 'booking.completed');
     assert.match(rows[0].body_text, /service report/); assert.match(rows[0].body_text, /leave a review/);
     assert.equal((await listBookingEmails(pool, b.id)).rows.length, 1);
+  });
+
+  await t.test('day-before reminders serialize instances, recheck changed appointments and expire before late retries', async () => {
+    const create = async (state = 'Assigned') => {
+      const b = await make(state);
+      const [a] = await pool.execute("INSERT INTO assignment(booking_id,technician_id,assigned_by_admin_id,assignment_status) VALUES (?,?,?,'Assigned')", [b.id, tech.technician_id, actor.userId]);
+      await pool.execute("INSERT INTO work_order(booking_id,assignment_id,appointment_date,appointment_time,current_status) VALUES (?,?,?,'09:00:00',?)", [b.id, a.insertId, b.date + ' 09:00:00', state]);
+      return { ...b, now: new Date(addCalendarDays(b.date, -1) + 'T01:00:00Z') };
+    };
+    const scoped = id => ({ execute: pool.execute.bind(pool), getConnection: async () => {
+      const c = await pool.getConnection(); return { beginTransaction: c.beginTransaction.bind(c), commit: c.commit.bind(c), rollback: c.rollback.bind(c), release: c.release.bind(c), execute: (sql, args) => sql.startsWith('SELECT * FROM booking_email_outbox WHERE delivery_mode=') ? c.execute(sql.replace('WHERE delivery_mode=?', "WHERE booking_id=? AND event_type='booking.reminder' AND delivery_mode=?"), [id, ...args]) : c.execute(sql, args) };
+    } });
+    const sent = [], transport = { sendMail: async mail => { sent.push(mail); return { accepted: [mail.to.address] }; } };
+    const deliver = (b, extra = {}) => deliverPendingBookingEmails(scoped(b.id), { mode: 'local', now: () => b.now, transport, ...extra });
+    const b = await create();
+    assert.equal(await enqueueTomorrowBookingReminders(pool, { now: new Date(b.now.getTime() - 1) }), 0);
+    const counts = await Promise.all([enqueueTomorrowBookingReminders(pool, { now: b.now }), enqueueTomorrowBookingReminders(pool, { now: b.now })]);
+    assert.equal(counts[0] + counts[1], 1); assert.equal((await mails(b.id)).length, 1);
+    assert.equal(await enqueueTomorrowBookingReminders(pool, { now: b.now }), 0, 'restart must not add another event');
+    assert.equal(await deliver(b, { transport: { sendMail: async () => { throw Object.assign(new Error('fixture failure'), { code: 'ECONNECTION' }); } } }), 0);
+    await pool.execute("UPDATE booking SET slot_end='11:30:00' WHERE booking_id=?", [b.id]);
+    await pool.execute('UPDATE booking_email_outbox SET next_attempt_at=NOW() WHERE booking_id=?', [b.id]);
+    assert.equal(await deliver(b), 0); assert.equal(sent.length, 0, 'old appointment must not be sent on retry');
+    const [obsolete] = await mails(b.id); assert.equal(obsolete.delivery_mode, 'disabled'); assert.equal(obsolete.last_error, 'REMINDER_SUPERSEDED');
+    assert.equal((await listBookingEmails(pool, b.id)).rows[0].canRetry, false);
+    assert.equal(await enqueueTomorrowBookingReminders(pool, { now: b.now }), 1);
+    assert.equal(await deliver(b), 1); assert.match(sent[0].text, /09:00 - 11:30/); assert.match(sent[0].text, /Mail fixture address/);
+    assert.equal(await enqueueTomorrowBookingReminders(pool, { now: b.now }), 0);
+    // A reverted change can reuse an unsent disabled snapshot without a new row.
+    await pool.execute("UPDATE booking SET slot_end='10:00:00' WHERE booking_id=?", [b.id]);
+    assert.equal(await enqueueTomorrowBookingReminders(pool, { now: b.now }), 1);
+    assert.equal((await mails(b.id)).length, 2); assert.equal(await deliver(b), 1);
+    for (const state of ['Cancelled', 'Completed', 'Rejected', 'Expired', 'Submitted', 'Confirmed', 'Awaiting return arrangement']) {
+      const closed = await create();
+      await enqueueTomorrowBookingReminders(pool, { now: closed.now });
+      await pool.execute('UPDATE booking SET booking_status=? WHERE booking_id=?', [state, closed.id]);
+      assert.equal(await deliver(closed), 0, state + ' must suppress the pending reminder');
+      assert.equal((await mails(closed.id))[0].delivery_mode, 'disabled');
+    }
+    const expired = await create();
+    await enqueueTomorrowBookingReminders(pool, { now: expired.now });
+    assert.equal(await deliver(expired, { now: () => new Date(expired.date + 'T01:00:00Z') }), 0, 'no tomorrow wording on the appointment day');
+    const pending = await make('Confirmed');
+    assert.equal(await enqueueTomorrowBookingReminders(pool, { now: new Date(addCalendarDays(pending.date, -1) + 'T01:00:00Z') }), 0, 'unassigned booking must not promise a visit');
+    const returning = await create('Return visit');
+    assert.equal(await enqueueTomorrowBookingReminders(pool, { now: returning.now }), 1);
+    assert.equal(await deliver(returning), 1);
+    const failed = await create();
+    await pool.query("CREATE TRIGGER reject_reminder_mail BEFORE INSERT ON booking_email_outbox FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='fixture failure'");
+    try { await assert.rejects(enqueueTomorrowBookingReminders(pool, { now: failed.now })); }
+    finally { await pool.query('DROP TRIGGER reject_reminder_mail'); }
+    assert.equal((await mails(failed.id)).length, 0); assert.equal(await status(failed.id), 'Assigned');
+    assert.equal(await enqueueTomorrowBookingReminders(pool, { now: failed.now }), 1);
   });
 
 });
