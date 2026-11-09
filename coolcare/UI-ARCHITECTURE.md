@@ -5,8 +5,8 @@
 Public sign-in uses manually entered email/password. Demo shortcuts have been removed;
 existing accounts, passwords and normal API authentication remain unchanged.
 Unconfigured social buttons remain
-removed. Account help opens the support email application and
-does not claim to send reset mail. Shared Terms/Privacy content is available at
+removed. Forgot password appears on its own line below Create an account. It opens an
+email reset request form, using a single-use link to /reset-password. Shared Terms/Privacy content is available at
 `/#/terms` and `/#/privacy`; registration opens the same documents in a dialog
 without losing entered answers. All new copy stays in English.
 
@@ -444,3 +444,18 @@ clears the challenge/code whenever the email changes. The API checks ownership i
 the account-creation transaction; a browser flag cannot bypass verification.
 See AZURE-DEPLOYMENT.md for migration 38, mail setup and endpoints.
 Existing sign-in accounts and staff invitations keep their current behavior.
+
+
+## Forgotten passwords
+
+The login page has a separate Forgot password button below the registration line.
+Its dialog accepts an account email, displays the same generic response for unknown,
+inactive, throttled and eligible accounts, and enforces a resend cooldown. Existing
+sign-in fields, roles and demo account credentials remain unchanged until an owner
+of a real mailbox completes a reset.
+
+The standalone /reset-password page reads a high-entropy token from the link fragment
+and removes it from the URL. Tokens and new passwords stay in memory, not browser
+storage. The token is sent only in a CSRF-protected POST. Merely opening a link does
+not change a password or consume the token. Success clears inputs and asks the user
+to sign in normally. Refreshing the page requires reopening the emailed link.

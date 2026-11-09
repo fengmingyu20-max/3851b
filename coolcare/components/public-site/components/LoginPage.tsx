@@ -1,9 +1,8 @@
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { ForgotPasswordDialog } from './ForgotPasswordDialog';
 
 import { SiteIcon } from '@/components/ui/site-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { customerSupportEmail } from '@/lib/customer-support';
 import { apiFetch as fetch, loginErrorMessage } from '../api';
 import React, { useState, useEffect } from 'react';
 import { PageRoute, User } from '../types';
@@ -191,13 +190,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <label className="block text-sm font-medium text-ac-on-surface" htmlFor="login-password">
                   Password
                 </label>
-                <Button variant="ghost"
-                  type="button"
-                  onClick={() => setShowForgotModal(true)}
-                  className="text-xs text-ac-primary hover:underline bg-transparent border-none p-0 cursor-pointer"
-                >
-                  Forgot password?
-                </Button>
+
               </div>
               <div className="relative">
                 <SiteIcon className=" absolute left-3 top-1/2 -translate-y-1/2 text-ac-outline text-[20px]">
@@ -266,6 +259,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 Create an account
               </Button>
             </p>
+            <div className="mt-2">
+              <Button variant="ghost" type="button" onClick={() => setShowForgotModal(true)}
+                className="min-h-11 text-sm font-medium text-ac-primary hover:underline">
+                Forgot password?
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -287,24 +286,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         </div>
       </div>
 
-      {showForgotModal && (
-        <Dialog open onOpenChange={setShowForgotModal}>
-          <DialogContent className="ac-site max-h-[85dvh] overflow-y-auto bg-ac-surface rounded-2xl shadow-xl border border-ac-outline-variant p-6" aria-describedby="account-access-help">
-            <DialogTitle className="pr-6 text-lg font-bold text-ac-on-background">Help accessing your account</DialogTitle>
-            <div id="account-access-help" className="space-y-3 text-sm leading-6 text-ac-on-surface-variant">
-              <p>Contact our support team if you have forgotten your password or cannot sign in. Automatic password reset emails are not currently available.</p>
-              <p>Include the email address on your account. Never send your password. The team will need to verify your identity before helping with account access.</p>
-            </div>
-            <a href={'mailto:' + customerSupportEmail + '?subject=' + encodeURIComponent('CoolCare account access help')}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-ac-primary px-4 py-3 text-sm font-semibold text-ac-on-primary hover:bg-ac-primary/90">
-              <SiteIcon>mail</SiteIcon> Email support
-            </a>
-            <p className="break-all text-xs text-ac-on-surface-variant">{customerSupportEmail}</p>
-            <p className="text-xs text-ac-on-surface-variant">Opens your email app. No message is sent automatically.</p>
-            <Button variant="outline" onClick={() => setShowForgotModal(false)}>Return to Sign In</Button>
-          </DialogContent>
-        </Dialog>
-      )}
+      {showForgotModal && <ForgotPasswordDialog initialEmail={email} onClose={() => setShowForgotModal(false)} />}
+
     </div>
   );
 };

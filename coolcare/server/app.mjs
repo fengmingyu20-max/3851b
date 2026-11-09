@@ -145,6 +145,7 @@ export function createApp({
   threshold = 15,
   production = false,
   registrationMailTransportFactory,
+  passwordResetMailTransportFactory,
 }) {
   if (!secret || secret.length < 32)
     throw new Error('Set SESSION_SECRET to at least 32 characters.');
@@ -240,7 +241,7 @@ export function createApp({
   });
   registerSignatureMedia(app,pool);
   registerServicePhotoMedia(app,pool);
-  app.use('/api/public', createPublicRouter(pool,{secret,registrationMailTransportFactory}));
+  app.use('/api/public', createPublicRouter(pool,{secret,origin,registrationMailTransportFactory,passwordResetMailTransportFactory}));
   app.use('/api/customer', createCustomerRouter(pool));
   app.use('/api/technician', createTechnicianRouter(pool));
   registerCommerceRoutes(app, pool);

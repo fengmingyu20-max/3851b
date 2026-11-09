@@ -3,9 +3,10 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { AppError } from './inventory.mjs';
 
+export const newPasswordSchema = z.string().min(8).max(72).refine(value => Buffer.byteLength(value, 'utf8') <= 72, 'Password must be at most 72 UTF-8 bytes.');
 export const passwordSchema = z.object({
   currentPassword: z.string().min(1).max(72),
-  newPassword: z.string().min(8).max(72).refine(value => Buffer.byteLength(value, 'utf8') <= 72, 'Password must be at most 72 UTF-8 bytes.'),
+  newPassword: newPasswordSchema,
   confirmPassword: z.string(),
 }).strict().refine(value => value.newPassword === value.confirmPassword, 'Passwords do not match.')
   .refine(value => value.newPassword !== value.currentPassword, 'Choose a different password.');

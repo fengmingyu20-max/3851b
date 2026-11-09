@@ -1,3 +1,4 @@
+import { createPasswordResetService } from './password-reset.mjs';
 import { createRegistrationService } from './registration-email.mjs';
 import { bookingReference } from './booking-reference.mjs';
 import express from 'express';
@@ -103,14 +104,22 @@ export async function changePublicBooking(pool,user,id,action,input){
  await c.commit();return {success:true};
  }catch(e){await c.rollback();throw e;}finally{c.release();}
 }
-export function createPublicRouter(pool,{secret,registrationMailTransportFactory}={}){
+export function createPublicRouter(pool,{secret,origin,passwordResetMailTransportFactory,registrationMailTransportFactory}={}){
  const registration=createRegistrationService(pool,{secret,transportFactory:registrationMailTransportFactory});
+ const passwordReset=createPasswordResetService(pool,{origin,transportFactory:passwordResetMailTransportFactory});
  const r=express.Router();
  const limiter=rateLimit({windowMs:15*60*1000,limit:30,standardHeaders:true,legacyHeaders:false});
  r.get('/session',async(req,res)=>res.json({success:true,user:req.session.portalUser?await sessionUser(pool,req):null}));
  const verificationLimiter=rateLimit({windowMs:15*60*1000,limit:5,standardHeaders:true,legacyHeaders:false,message:{error:'Too many verification requests. Please try again in 15 minutes.'}});
  r.post('/register/email-code',verificationLimiter,async(req,res)=>res.json(await registration.requestCode(req.body,req.sessionID)));
  r.post('/register',limiter,async(req,res)=>res.status(201).json(await registration.register(req.body,req.sessionID)));
+ const resetLimiter=rateLimit({windowMs:15*60*1000,limit:5,standardHeaders:true,legacyHeaders:false,message:{error:'Too many password reset requests. Please try again in 15 minutes.'}});
+ r.post('/account/forgot-password',resetLimiter,async(req,res)=>res.json(await passwordReset.request(req.body)));
+ r.post('/account/reset-password',limiter,async(req,res)=>{
+  const result=await passwordReset.reset(req.body);
+  await invalidateAccountSessions(req,result.userId);
+  res.clearCookie('coolcare.sid').json({success:true,message:'Password reset. Sign in with your new password.'});
+ });
  r.post('/login',limiter,async(req,res)=>{
   const d=z.object({email:z.email().max(255),password:z.string().min(1).max(72),rememberMe:z.boolean().optional()}).parse(req.body);
   const [[row]]=await pool.execute('SELECT u.user_id,u.password_hash,u.status,r.role_name FROM user_account u JOIN role r ON r.role_id=u.role_id WHERE u.email=?',[d.email.toLowerCase()]);

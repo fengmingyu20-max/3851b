@@ -198,3 +198,46 @@ Customer account and sign in. Incorrect/expired codes must not create an account
 Do not include codes in logs or screenshots. CI runs concurrent registration and
 failure tests against a disposable MySQL DB with injected mail; no external emails
 are sent by the test suite.
+
+
+## Forgotten password setup
+
+After deploying, run this once in App Service SSH:
+
+```sh
+cd /home/site/wwwroot
+node scripts/migrate-password-reset.mjs --apply
+```
+
+Migration 39 only creates password_reset_token and does not reset any existing
+credentials or orders. Local npm run db:up applies it and grants the app user
+SELECT/INSERT/UPDATE/DELETE. If the cloud user lacks CREATE, have a DB administrator
+apply database/39-password-reset.sql and grant those table privileges.
+Existing Azure mail settings are reused; no new service or secret is needed.
+
+POST /api/public/account/forgot-password accepts {email}. Eligible active accounts
+receive a link valid for thirty minutes. Every well-formed address gets the same
+response, including unknown/inactive/throttled/failed requests. Background delivery
+avoids exposing provider timing to the public response. Resends are limited to one
+per minute and five per account/hour; IP request limits also apply. A resend replaces
+the old token. The mail adapter is shared with registration/booking mail.
+Raw reset tokens are never persisted in the database or booking outbox, logged,
+or returned by the API. Delivery runs in memory after the request commits; if the
+app restarts during delivery, request a new link after the cooldown. Delivery failure
+is logged without email addresses, tokens, passwords or provider transcripts.
+
+POST /api/public/account/reset-password accepts {token,newPassword,confirmPassword}.
+Both endpoints require the standard CSRF cookie/header. The opaque token digest is
+locked during password update and consumption in one transaction. The token is
+invalid after expiry, reuse, resend, password/email change or account deactivation.
+Passwords use the existing bcrypt rules; existing credentials remain unchanged
+until valid completion. Old sessions are revoked and credential fingerprints also
+reject stale sessions on other running instances; no automatic sign-in follows.
+Links use configured WEB_ORIGIN, never the incoming Host header. Tokens are placed
+in URL fragments (not server/access-log request URLs), then removed from the address
+bar when the page opens. Refresh requires reopening the original email link.
+
+Test with your own active account and real inbox, or Mailpit locally. Requesting or
+opening the link must leave the old password working. After valid reset, the old
+password/sessions must fail, the new password must work and the link must fail on
+reuse. CI tests use a disposable MySQL database and captured mail, never real emails.
