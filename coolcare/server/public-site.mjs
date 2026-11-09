@@ -1,3 +1,4 @@
+import { createRegistrationService } from './registration-email.mjs';
 import { bookingReference } from './booking-reference.mjs';
 import express from 'express';
 import bcrypt from 'bcryptjs';
@@ -102,15 +103,14 @@ export async function changePublicBooking(pool,user,id,action,input){
  await c.commit();return {success:true};
  }catch(e){await c.rollback();throw e;}finally{c.release();}
 }
-export function createPublicRouter(pool){
+export function createPublicRouter(pool,{secret,registrationMailTransportFactory}={}){
+ const registration=createRegistrationService(pool,{secret,transportFactory:registrationMailTransportFactory});
  const r=express.Router();
  const limiter=rateLimit({windowMs:15*60*1000,limit:30,standardHeaders:true,legacyHeaders:false});
  r.get('/session',async(req,res)=>res.json({success:true,user:req.session.portalUser?await sessionUser(pool,req):null}));
- r.post('/register',limiter,async(req,res)=>{
-  const d=z.object({fullName:z.string().trim().min(1).max(120),email:z.email().max(255),phone:z.string().trim().min(3).max(30),propertyType:z.string().max(120).optional(),password:z.string().min(8).max(72),confirmPassword:z.string()}).refine(v=>v.password===v.confirmPassword,'Passwords do not match.').parse(req.body);
-  const hash=await bcrypt.hash(d.password,12),c=await pool.getConnection();
-  try{await c.beginTransaction();const [[role]]=await c.query("SELECT role_id FROM role WHERE role_name='Customer'");const [row]=await c.execute('INSERT INTO user_account(role_id,full_name,email,password_hash,phone) VALUES (?,?,?,?,?)',[role.role_id,d.fullName,d.email.toLowerCase(),hash,d.phone]);await c.execute('INSERT INTO customer(user_id) VALUES (?)',[row.insertId]);await c.execute('INSERT INTO web_customer_profile(user_id,property_type) VALUES (?,?)',[row.insertId,d.propertyType||null]);await c.commit();res.status(201).json({success:true,user:{id:row.insertId,fullName:d.fullName,email:d.email}});}catch(e){await c.rollback();if(e.code==='ER_DUP_ENTRY')throw new AppError('An account with this email already exists.',409);throw e;}finally{c.release();}
- });
+ const verificationLimiter=rateLimit({windowMs:15*60*1000,limit:5,standardHeaders:true,legacyHeaders:false,message:{error:'Too many verification requests. Please try again in 15 minutes.'}});
+ r.post('/register/email-code',verificationLimiter,async(req,res)=>res.json(await registration.requestCode(req.body,req.sessionID)));
+ r.post('/register',limiter,async(req,res)=>res.status(201).json(await registration.register(req.body,req.sessionID)));
  r.post('/login',limiter,async(req,res)=>{
   const d=z.object({email:z.email().max(255),password:z.string().min(1).max(72),rememberMe:z.boolean().optional()}).parse(req.body);
   const [[row]]=await pool.execute('SELECT u.user_id,u.password_hash,u.status,r.role_name FROM user_account u JOIN role r ON r.role_id=u.role_id WHERE u.email=?',[d.email.toLowerCase()]);

@@ -7,6 +7,10 @@ import {annualVisitSchedule} from '../server/customer/annual-bookings.mjs';
 import {addCalendarDays,minimumBookingDate,nextWeekday} from '../server/customer/booking-schedule.mjs';
 import {adjustReward} from '../server/commerce.mjs';
 
+const verificationMessages=new Map();
+const registrationMailTransportFactory=()=>({sendMail:async mail=>{
+ verificationMessages.set(mail.to.address,mail.text);return {accepted:[mail.to.address]};
+}});
 const pool=mysql.createPool({host:process.env.DB_HOST,port:Number(process.env.DB_PORT),user:process.env.DB_USER,
   password:process.env.DB_PASSWORD,database:process.env.DB_NAME,dateStrings:true,decimalNumbers:true,connectionLimit:4});
 after(()=>pool.end());
@@ -40,7 +44,7 @@ async function fixture(work) {
   const db={execute:handle.execute,query:handle.query,getConnection:async()=>handle};
   let server;
   async function start() {
-    server=createApp({pool:db,secret:process.env.SESSION_SECRET}).listen(0,'127.0.0.1');
+    server=createApp({pool:db,secret:process.env.SESSION_SECRET,registrationMailTransportFactory}).listen(0,'127.0.0.1');
     await new Promise(resolve=>server.once('listening',resolve));
   }
   async function restart() {
@@ -73,6 +77,9 @@ async function fixture(work) {
     const client=newClient();await client.session();
     const account={fullName:name,email:`assistant-${randomUUID()}@example.test`,phone:'+65 9123 4567',
       password:'TestPassword2026!',confirmPassword:'TestPassword2026!'};
+    const challenge=await client.request('/api/public/register/email-code','POST',{email:account.email});
+    assert.equal(challenge.status,200,JSON.stringify(challenge.data));
+    account.verificationId=challenge.data.verificationId;account.emailCode=verificationMessages.get(account.email).match(/code is: (\d{6})/)[1];
     const registration=await client.request('/api/public/register','POST',account);
     assert.equal(registration.status,201,JSON.stringify(registration.data));
     await client.login(account);

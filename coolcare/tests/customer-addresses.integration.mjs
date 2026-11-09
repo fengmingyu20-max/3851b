@@ -7,6 +7,10 @@ import {minimumBookingDate,nextWeekday,singaporeToday,addCalendarDays} from '../
 import {createCustomerAddress} from '../server/customer/address-service.mjs';
 import {lockCustomer} from '../server/customer/booking-options.mjs';
 
+const verificationMessages=new Map();
+const registrationMailTransportFactory=()=>({sendMail:async mail=>{
+ verificationMessages.set(mail.to.address,mail.text);return {accepted:[mail.to.address]};
+}});
 const pool=mysql.createPool({host:process.env.DB_HOST,port:Number(process.env.DB_PORT),user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_NAME,dateStrings:true,decimalNumbers:true,connectionLimit:4});
 after(()=>pool.end());
 
@@ -14,7 +18,7 @@ test('new customer can save an address without AC records and book by count thro
   const c=await pool.getConnection();await c.beginTransaction();
   const handle={execute:c.execute.bind(c),query:c.query.bind(c),beginTransaction:()=>c.query('SAVEPOINT address_test'),commit:()=>c.query('RELEASE SAVEPOINT address_test'),rollback:()=>c.query('ROLLBACK TO SAVEPOINT address_test'),release:()=>{}};
   const db={execute:c.execute.bind(c),query:c.query.bind(c),getConnection:async()=>handle};
-  const server=createApp({pool:db,secret:process.env.SESSION_SECRET}).listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
+  const server=createApp({pool:db,secret:process.env.SESSION_SECRET,registrationMailTransportFactory}).listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
   let cookie='',csrf='';
   async function request(path,method='GET',body){
     const response=await fetch(`http://127.0.0.1:${server.address().port}`+path,{method,headers:{Cookie:cookie,'X-CSRF-Token':csrf,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
@@ -25,6 +29,8 @@ test('new customer can save an address without AC records and book by count thro
     csrf=(await(await request('/api/session')).json()).csrf;
     assert.equal((await request('/api/customer/addresses','POST',{addressLine:'123 New Street'})).status,401);
     const account={fullName:'Address Integration',email:`address-${randomUUID()}@example.test`,phone:'12345678',password:'TestPassword2026!',confirmPassword:'TestPassword2026!'};
+    const challenge=await (await request('/api/public/register/email-code','POST',{email:account.email})).json();
+    account.verificationId=challenge.verificationId;account.emailCode=verificationMessages.get(account.email).match(/code is: (\d{6})/)[1];
     assert.equal((await request('/api/public/register','POST',account)).status,201);
     const login=await(await request('/api/public/login','POST',account)).json();csrf=login.csrf;
     let context=await state();assert.equal(context.addresses.length,0);assert.equal(context.units.length,0);

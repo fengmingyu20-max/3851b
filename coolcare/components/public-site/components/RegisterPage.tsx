@@ -6,7 +6,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { PolicyDocument, type PolicyKind } from './PolicyPage';
 import { apiFetch as fetch } from '../api';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageRoute, User } from '../types';
 
 interface RegisterPageProps {
@@ -26,6 +26,52 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onRegist
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [policy, setPolicy] = useState<PolicyKind | null>(null);
+
+  const [verificationId, setVerificationId] = useState('');
+  const [emailCode, setEmailCode] = useState('');
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [codeNotice, setCodeNotice] = useState('');
+  const [resendAt, setResendAt] = useState(0);
+  const [secondsRemaining, setSecondsRemaining] = useState(0);
+
+  useEffect(() => {
+    const update = () => setSecondsRemaining(Math.max(0, Math.ceil((resendAt - Date.now()) / 1000)));
+    update();
+    if (!resendAt) return;
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendAt]);
+
+  const handleSendCode = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setErrorMessage('Please enter a valid email address first.');
+      return;
+    }
+    setIsSendingCode(true);
+    setErrorMessage('');
+    setCodeNotice('');
+    setVerificationId('');
+    setEmailCode('');
+    try {
+      const response = await fetch('/api/public/register/email-code', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        if (response.status === 429) setResendAt(Date.now() + 60000);
+        setErrorMessage(data?.error || 'Unable to send a verification code. Please try again shortly.');
+        return;
+      }
+      setVerificationId(data.verificationId);
+      setResendAt(Date.now() + data.resendAfter * 1000);
+      setCodeNotice('Code sent. Check your inbox and spam folder. It expires in 10 minutes; only the newest code works.');
+      document.getElementById('reg-email-code')?.focus();
+    } catch {
+      setErrorMessage('Unable to send a verification code. Check your connection and try again.');
+    } finally { setIsSendingCode(false); }
+  };
 
   const handleBackToHome = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -74,6 +120,11 @@ const handleSubmit = async (e: React.FormEvent) => {
     return;
   }
 
+  if (!verificationId || !/^\d{6}$/.test(emailCode)) {
+    setErrorMessage('Request an email verification code and enter all six digits before registering.');
+    return;
+  }
+
   setIsLoading(true);
 
   try {
@@ -87,6 +138,8 @@ const handleSubmit = async (e: React.FormEvent) => {
         },
 
         body: JSON.stringify({
+          verificationId,
+          emailCode,
           fullName: fullName.trim(),
           email: email.trim().toLowerCase(),
           phone: phone.trim(),
@@ -101,7 +154,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     if (!response.ok) {
       setErrorMessage(
-        data.message || 'Registration failed. Please try again.'
+        data.error || data.message || 'Registration failed. Please try again.'
       );
       return;
     }
@@ -174,14 +227,15 @@ const handleSubmit = async (e: React.FormEvent) => {
 
           {/* Error Alert */}
           {errorMessage && (
-            <div className="mb-4 p-3.5 rounded-lg bg-ac-error-container text-ac-on-error-container text-sm flex items-start gap-2 animate-in fade-in">
+            <div role="alert" className="mb-4 p-3.5 rounded-lg bg-ac-error-container text-ac-on-error-container text-sm flex items-start gap-2 animate-in fade-in">
               <SiteIcon className=" text-[20px] shrink-0 mt-0.5 text-ac-error">error</SiteIcon>
               <span className="flex-grow">{errorMessage}</span>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit}>
+            <fieldset disabled={isLoading || isSendingCode} className="min-w-0 space-y-4">
             <div>
               <label className="block text-sm font-medium text-ac-on-surface mb-1.5" htmlFor="reg-name">
                 Full Name
@@ -217,7 +271,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     required
                     placeholder="alex@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); setVerificationId(''); setEmailCode(''); setCodeNotice(''); }}
                     className="w-full pl-10 pr-3 py-2.5 rounded-lg border border-ac-outline-variant bg-ac-surface-container-lowest text-ac-on-surface focus:outline-none focus:border-ac-primary focus:ring-2 focus:ring-ac-primary/20 text-sm transition-all"
                   />
                 </div>
@@ -244,6 +298,24 @@ const handleSubmit = async (e: React.FormEvent) => {
               </div>
             </div>
 
+            <div className="rounded-xl border border-ac-outline-variant/40 p-4 space-y-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <label className="text-sm font-medium text-ac-on-surface" htmlFor="reg-email-code">Email verification code</label>
+                <Button type="button" variant="outline" onClick={handleSendCode}
+                  disabled={isSendingCode || isLoading || secondsRemaining > 0 || !email.trim()}
+                  className="min-h-11 whitespace-normal text-sm">
+                  {isSendingCode ? 'Sending code��' : secondsRemaining > 0 ? `Resend in ${secondsRemaining}s` : verificationId ? 'Resend code' : 'Send verification code'}
+                </Button>
+              </div>
+              <Input id="reg-email-code" type="text" inputMode="numeric" autoComplete="one-time-code"
+                required pattern="[0-9]{6}" maxLength={6} placeholder="6-digit code" value={emailCode}
+                aria-describedby="reg-code-help" onChange={event => setEmailCode(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                className="min-h-11 tracking-widest" />
+              <p id="reg-code-help" role="status" aria-live="polite" className="text-xs leading-5 text-ac-on-surface-variant">
+                {isSendingCode ? 'Sending your verification email. Please wait��' : codeNotice || 'Verify your email before creating your account. Your code is valid for 10 minutes and works only in this browser session.'}
+              </p>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-ac-on-surface mb-1.5" htmlFor="reg-property">
                 Property / Air Conditioning Units
@@ -258,8 +330,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                   onChange={(e) => setPropertyType(e.target.value)}
                   className="w-full pl-10 pr-8 py-2.5 rounded-lg border border-ac-outline-variant bg-ac-surface-container-lowest text-ac-on-surface focus:outline-none focus:border-ac-primary focus:ring-2 focus:ring-ac-primary/20 text-sm appearance-none cursor-pointer"
                 >
-                  <option value="Apartment / Condo (1-2 Units)">Apartment / Condo (1–2 Units)</option>
-                  <option value="Townhouse / Medium Residence (3-4 Units)">Townhouse / Medium Residence (3–4 Units)</option>
+                  <option value="Apartment / Condo (1-2 Units)">Apartment / Condo (1�C2 Units)</option>
+                  <option value="Townhouse / Medium Residence (3-4 Units)">Townhouse / Medium Residence (3�C4 Units)</option>
                   <option value="Landed House / Large Residence (5+ Units)">Landed House / Large Residence (5+ Units)</option>
                   <option value="Commercial Office / Retail Space">Commercial Office / Retail Space</option>
                 </NativeSelect>
@@ -341,18 +413,19 @@ const handleSubmit = async (e: React.FormEvent) => {
             {/* Submit Button */}
             <Button variant="ghost"
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isSendingCode || !verificationId || emailCode.length !== 6}
               className="w-full h-12 bg-ac-primary text-ac-on-primary font-semibold rounded-lg shadow-sm hover:opacity-90 active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-50 mt-2"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 <>
-                  Create Account
+                  Verify Email & Create Account
                   <SiteIcon className=" text-[18px]">how_to_reg</SiteIcon>
                 </>
               )}
             </Button>
+            </fieldset>
           </form>
 
           {/* Link to Login */}

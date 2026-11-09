@@ -10,7 +10,8 @@ test('public registration, sessions, booking, retry, cross-portal reads, ownersh
  const c=await pool.getConnection();await c.beginTransaction();
  const handle={execute:c.execute.bind(c),query:c.query.bind(c),beginTransaction:()=>c.query('SAVEPOINT public_test'),commit:()=>c.query('RELEASE SAVEPOINT public_test'),rollback:()=>c.query('ROLLBACK TO SAVEPOINT public_test'),release:()=>{}};
  const db={execute:c.execute.bind(c),query:c.query.bind(c),getConnection:async()=>handle};
- const server=createApp({pool:db,secret:process.env.SESSION_SECRET}).listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
+ let verificationMail;
+ const server=createApp({pool:db,secret:process.env.SESSION_SECRET,registrationMailTransportFactory:()=>({sendMail:async mail=>{verificationMail=mail;return {accepted:[mail.to.address]};}})}).listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
  const base=`http://127.0.0.1:${server.address().port}`;let cookie='',csrf='';
  async function req(path,method='GET',body){const r=await fetch(base+path,{method,headers:{Cookie:cookie,'X-CSRF-Token':csrf,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});if(r.headers.get('set-cookie'))cookie=r.headers.get('set-cookie').split(';')[0];return r;}
  try{
@@ -19,8 +20,10 @@ test('public registration, sessions, booking, retry, cross-portal reads, ownersh
   assert.equal((await req('/api/customer/bookings')).status,401);
   assert.equal((await req('/api/public/bookings','POST',{})).status,401);
   const account={fullName:'Integration Test',email:`test-${randomUUID()}@example.test`,phone:'12345678',password:'TestPassword2026!',confirmPassword:'TestPassword2026!',propertyType:'Apartment'};
+  const challenge=await (await req('/api/public/register/email-code','POST',{email:account.email})).json();
+  account.verificationId=challenge.verificationId;account.emailCode=verificationMail.text.match(/code is: (\d{6})/)[1];
   assert.equal((await req('/api/public/register','POST',account)).status,201);
-  assert.equal((await req('/api/public/register','POST',account)).status,409);
+  assert.equal((await req('/api/public/register','POST',account)).status,400);
   assert.equal((await req('/api/public/login','POST',{email:account.email,password:'wrong'})).status,401);
   const login=await (await req('/api/public/login','POST',account)).json();assert.equal(login.success,true);csrf=login.csrf;
   assert.equal((await (await req('/api/public/session')).json()).user.email,account.email);
@@ -45,6 +48,8 @@ test('public registration, sessions, booking, retry, cross-portal reads, ownersh
   assert.equal((await req('/api/customer/bookings')).status,401);
   const second={...account,email:`other-${randomUUID()}@example.test`};
   csrf=(await (await req('/api/session')).json()).csrf;
+  const secondChallenge=await (await req('/api/public/register/email-code','POST',{email:second.email})).json();
+  second.verificationId=secondChallenge.verificationId;second.emailCode=verificationMail.text.match(/code is: (\d{6})/)[1];
   assert.equal((await req('/api/public/register','POST',second)).status,201);
   csrf=(await (await req('/api/public/login','POST',second)).json()).csrf;
   assert.deepEqual((await (await req('/api/customer/bookings')).json()).bookings,[]);

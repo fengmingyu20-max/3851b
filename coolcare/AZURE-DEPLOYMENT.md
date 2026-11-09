@@ -152,3 +152,49 @@ Register a test customer using your own real inbox, create a fresh booking and a
 it through Admin, then check Admin email status and the inbox/spam folder. These
 configuration changes alone do not add cancellation/completion mail or an arbitrary
 Admin compose action. Do not send a historical demo backlog to external recipients.
+
+
+## Registration email verification
+
+New public Customer registration requires a six-digit emailed code. Click Send
+verification code, check the inbox/spam folder and submit Verify Email & Create
+Account. Codes expire after ten minutes, are bound to the normalized email and
+issuing browser session, and work once. Editing the email clears its challenge;
+a resend replaces the earlier code. After a refresh request another code following
+the cooldown. Five wrong guesses invalidate a code. Sending is limited to once per
+minute and five per address/hour, plus five requests per IP per fifteen minutes.
+Existing accounts/passwords and staff invitation activation are unchanged.
+
+POST /api/public/register/email-code takes {email}, returning only verificationId,
+expiresIn and resendAfter. POST /api/public/register also requires verificationId
+and emailCode. Both require the standard CSRF cookie/header. Account/profile inserts
+and code consumption commit atomically; wrong guesses commit their attempt count.
+Only HMAC digests are persisted. Codes are sent directly via the configured mail
+transport, never stored in booking_email_outbox. Provider acceptance is not proof
+of inbox delivery. Disabled/unconfigured mail fails closed. Expired challenge rows
+older than a day are pruned in bounded batches on successful code requests.
+
+Local: npm run db:up applies additive migration 38 and least-privilege grants.
+MAIL_MODE=local captures codes at http://localhost:8025. Production uses the existing
+MAIL_MODE=smtp, MAIL_PROVIDER=azure, MAIL_FROM and private
+AZURE_COMMUNICATION_CONNECTION_STRING settings.
+
+After deployment apply the migration once in App Service SSH:
+
+```sh
+cd /home/site/wwwroot
+node scripts/migrate-registration-email.mjs --apply
+```
+
+This reads the existing private DB settings with verified TLS. No passwords are
+pasted into commands or uploaded. Only the separate challenge table is created;
+existing accounts/orders are preserved. If DB_USER lacks CREATE permission, a DB
+administrator must apply database/38-registration-email.sql to the configured DB
+and grant SELECT/INSERT/UPDATE/DELETE on that table to the app user. Until migration,
+new registration fails closed; existing sign-in still works.
+
+Test only with an inbox you control: request a code, enter it, create a fresh
+Customer account and sign in. Incorrect/expired codes must not create an account.
+Do not include codes in logs or screenshots. CI runs concurrent registration and
+failure tests against a disposable MySQL DB with injected mail; no external emails
+are sent by the test suite.

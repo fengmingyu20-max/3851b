@@ -83,7 +83,7 @@ history. `/api/performance/admin/visits/:reportId/follow-up` accepts a PUT with
 `requestId`, `expectedVersion`, `feedbackVersion`, `status` (Open, In progress,
 Resolved), and a required internal `note`. Writes serialize on the customer review,
 reject stale versions and retain idempotent receipts. Admin performance shows low
-ratings (1�C2 stars), unresolved low reviews, and the latest ten internal events.
+ratings (1?C2 stars), unresolved low reviews, and the latest ten internal events.
 Changed customer feedback requires renewed review before resolving it. Internal notes
 and events are absent from customer and technician responses; their existing review
 submission/read behavior is preserved.
@@ -121,8 +121,8 @@ needed. Annual visits retain distinct references under their existing plan.
 
 Customer bookings, plans, assistant receipts, availability notices, rewards,
 reports, Admin orders/schedules/audit/analytics, Technician jobs/reports/performance,
-new assignment emails and CSV exports share this display. Work-order (`WO-��`)
-and report (`SR-��`) IDs remain separate, labelled identities. Technician work-order
+new assignment emails and CSV exports share this display. Work-order (`WO-??`)
+and report (`SR-??`) IDs remain separate, labelled identities. Technician work-order
 views show the associated booking reference alongside the work-order ID.
 
 Admin booking search and audit filters accept full references (including the
@@ -172,7 +172,7 @@ Native select elements and native checkbox/radio inputs are intentionally expose
 
 ## Public homepage
 
-The CoolCare homepage retains the imported blue/white visual style and images, with a single services-and-pricing section, service process, FAQ and real email contact. Prices come from `GET /api/public/offers`; quantity changes recalculate the visit/annual estimate without replacing a failed catalogue response with sample prices. `lib/homepage-offers.ts` also maps symptom IDs to the appropriate service, including Needs Cleaning �� Cleaning.
+The CoolCare homepage retains the imported blue/white visual style and images, with a single services-and-pricing section, service process, FAQ and real email contact. Prices come from `GET /api/public/offers`; quantity changes recalculate the visit/annual estimate without replacing a failed catalogue response with sample prices. `lib/homepage-offers.ts` also maps symptom IDs to the appropriate service, including Needs Cleaning ?? Cleaning.
 
 Booking intent (service, quantity and symptoms) stays in React memory through the homepage login/register flow, then prefills the authenticated booking dialog. A generic Book a service action preserves an unfinished draft. An uncertain submitted request retains its original payload and request UUID until confirmation is resolved. Refreshing the page does not preserve an unsubmitted intent. Normal login opens the role dashboard; all customer My Bookings entry points and old `/#/bookings` bookmarks resolve to `/customer/bookings`. Old `#about` and `#promotions` anchors lead to the process and combined services sections respectively.
 
@@ -223,7 +223,7 @@ review, confirmation, ownership, CSRF and idempotent recovery paths remain in pl
 - A lost confirmation response is reconciled with the saved server receipt before editing or starting another booking. Completed retries return the same receipt even after the appointment date passes. Successful creation shows real order IDs and amount, emits `coolcare:bookings-updated` so mounted customer resources (including Dashboard and My Bookings) refresh, and links directly to the newly created booking. Booking submission does not send mail; the customer is notified after successful dispatch. Support uses the configured customer support email.
 - A named `returnTo=assistant` login target returns to `/customer?assistant=resume`; arbitrary redirect URLs are not accepted. Phone fields accept an eight-digit Singapore number or an international number with a country code, show inline errors and normalize confirmed numbers. This checks format, not phone ownership or reachability.
 
-New bookings require at least 14 calendar days of notice in Asia/Singapore. Self-service changes require at least 72 hours before the original appointment, and rescheduled visits must also be at least 72 hours ahead. All dates are Monday�CFriday and validated again by the server. Annual previews roll subsequent weekend visits forward to Monday without moving the original quarterly anchor. Schedule choices use the shared slot-availability API and display **Fully booked** without exposing team size; final writes repeat the check under database locks. Both My Bookings pages show active requests only; Booking History keeps completed reports, rejected requests with reasons and cancelled requests in separate tabs. Existing data and list API contracts are preserved.
+New bookings require at least 14 calendar days of notice in Asia/Singapore. Self-service changes require at least 72 hours before the original appointment, and rescheduled visits must also be at least 72 hours ahead. All dates are Monday?CFriday and validated again by the server. Annual previews roll subsequent weekend visits forward to Monday without moving the original quarterly anchor. Schedule choices use the shared slot-availability API and display **Fully booked** without exposing team size; final writes repeat the check under database locks. Both My Bookings pages show active requests only; Booking History keeps completed reports, rejected requests with reasons and cancelled requests in separate tabs. Existing data and list API contracts are preserved.
 
 The customer booking page retains four steps: Service, Address, Schedule and Review. Address entry is editable text with an optional saved-address chooser, **Add new address**, and an AC count instead of individual equipment checkboxes. The shared fields save addresses through the authenticated API and make the returned address immediately available for booking; customers with no registered equipment can complete the flow. UPCOMING uses appointment start times in Singapore, and its count and nearest-appointment card share the same filter, including same-day time handling and updates when the clock changes or the page regains focus.
 
@@ -255,7 +255,7 @@ The booking workflow extension uses the same UI primitives and adds `booking-ser
 
 Automated unit and real-MySQL validation covers address saving/deduplication, count-based and legacy booking inputs, rolling address limits, customer and service-date locks, the three-choice catalogue, 14-day lead time and weekdays, annual dates and price allocations, all-or-nothing four-visit creation/email queuing, expired-date retries, quarterly rescheduling, cancellation, historical data retention, stock audit and technician assessment authorization/versioning. Assistant tests cover account/CSRF boundaries, durable drafts across fresh API sessions, stale revisions and reset races, real customer-lock contention, UTC save timestamps, all four quarterly conflicts, price reconfirmation, atomic receipt persistence and recovery after service dates expire. Staff tests cover hashed/expiring/revocable/single-use invitations, Owner uniqueness and transfer, atomic confirmation/dispatch, FIFO Admin review order, no-technician rollback, conflict-free load rotation, sequential job updates and concurrent contention for the last team-capacity place. Singapore midnight boundaries, nearest upcoming appointment sorting and phone formats are unit-tested. Mutating automated fixtures roll back.
 
-Homepage checks cover desktop (1280px) and phone (390px) layouts, live catalogue estimates for 1�C3 units, annual per-visit amounts, guest service/quantity/symptom selection through register/login navigation, authenticated draft reopening, replacing automatic symptoms while preserving written notes, FAQ disclosure, mobile menu keyboard dismissal, real support mail links and legacy My Bookings login redirects. This browser pass does not submit new bookings or send mail; existing MySQL orders remain unchanged. Price validation and issue-to-service mapping also have unit regression coverage.
+Homepage checks cover desktop (1280px) and phone (390px) layouts, live catalogue estimates for 1?C3 units, annual per-visit amounts, guest service/quantity/symptom selection through register/login navigation, authenticated draft reopening, replacing automatic symptoms while preserving written notes, FAQ disclosure, mobile menu keyboard dismissal, real support mail links and legacy My Bookings login redirects. This browser pass does not submit new bookings or send mail; existing MySQL orders remain unchanged. Price validation and issue-to-service mapping also have unit regression coverage.
 
 The address-flow browser check uses a new customer with no equipment, saves and rereads an address, creates four annual visits and a typed-address single visit, verifies their real MySQL quantities/prices/unit links, checks nearest-upcoming selection, and corrects a definitively rejected WebMCP request. Desktop and 390px layouts were inspected. The isolated QA account, addresses and bookings were removed afterward.
 
@@ -295,7 +295,7 @@ All three booking surfaces reuse `BookingServiceSelection`: Cleaning and Repair 
 
 Admin review offers Submitted, Rejected and Expired filters. Submitted cards/rows use red reminders and show a UTC-stored confirmation deadline formatted in English Singapore time. Only new requests acquire the configurable 48-hour deadline; the worker takes the same booking lock as approval and checks for live assignments before expiring a request. Rejection corrections use a request UUID and expected version, append a history event, and preserve the original reason.
 
-Dispatch first excludes unavailable accounts and overlapping original/return visits, including each booking's persisted travel allowance. Every booking starts at 30 minutes; Admin can save 0�C180 minutes and a traffic/access note before dispatch. It ranks eligible staff by exact postal-code match, same two-digit postal sector, another sector, or missing location; known estimated travel labour cost, workload and rotation break ties. The origin is the preceding visit on that day, falling back to the recorded technician base postal code. Both automatic suggestions and manual options explain the basis and show the travel plan. The UI never presents the sector rank as kilometres, live traffic, GPS location or route duration. Admin and Technician Profile can update the six-digit base postal code; Admin can maintain the optional hourly labour rate.
+Dispatch first excludes unavailable accounts and overlapping original/return visits, including each booking's persisted travel allowance. Every booking starts at 30 minutes; Admin can save 0?C180 minutes and a traffic/access note before dispatch. It ranks eligible staff by exact postal-code match, same two-digit postal sector, another sector, or missing location; known estimated travel labour cost, workload and rotation break ties. The origin is the preceding visit on that day, falling back to the recorded technician base postal code. Both automatic suggestions and manual options explain the basis and show the travel plan. The UI never presents the sector rank as kilometres, live traffic, GPS location or route duration. Admin and Technician Profile can update the six-digit base postal code; Admin can maintain the optional hourly labour rate.
 
 ## Checklist report entry
 Technician report editing uses selectable cleaning/repair templates immediately above completed-check checkboxes. Both templates use compact checkbox rows and one optional shared remarks field; unchecked items do not require individual reasons. Results serialize into the existing report text fields so existing customer/admin readers and signature content binding remain compatible. Legacy report text is retained on load and shown before selecting a replacement checklist; revision history remains available. Service progress replaces free-text parts with the owned-job parts catalogue and quantities, retaining the existing partNotes API; these selections do not issue inventory. Non-quote progress notes are summarized from the selected action and reason. Repair fee breakdown remains required.
@@ -316,7 +316,7 @@ For local walkthroughs, `SERVICE_TIMING_TEST_MODE=true` relaxes appointment star
 
 The technician jobs API includes `canStart`, `startBlockedReason`, `canComplete`, `completionBlockedReason`, `completionTimingNotice`, `reportPending` and `reportId`; report detail includes `canEdit` and `reportPending`. Completion of an In Progress visit requires a valid persisted actual start at or before now. A legacy visit that already started before its scheduled date can finish without changing its appointment or actual start; Jobs and Reports explain this recovery and completion appends a history note. Missing, invalid or future actual starts remain blocked, and new starts retain the scheduled-day/time checks. Service progress exposes `repairQuoteLocked` once completion has fixed the charge. Existing requests and status fields remain compatible; these flags explain the same checks enforced by mutation endpoints.
 
-Annual visit 1 keeps the configured confirmation deadline (48 hours by default). Visits 2�C4 remain reserved without that automatic deadline and are confirmed/dispatched separately. Closing one visit does not silently cancel the remaining quarterly visits; My Plans explains which visits need attention. Migration 31 only clears premature deadlines on future, still-Submitted later visits and never reopens closed orders.
+Annual visit 1 keeps the configured confirmation deadline (48 hours by default). Visits 2?C4 remain reserved without that automatic deadline and are confirmed/dispatched separately. Closing one visit does not silently cancel the remaining quarterly visits; My Plans explains which visits need attention. Migration 31 only clears premature deadlines on future, still-Submitted later visits and never reopens closed orders.
 ## Plans, rewards, reporting and performance
 
 The meeting update adds Admin **Annual Packages** at `/admin/plans`, including
@@ -363,7 +363,7 @@ the charts:
 | --- | --- |
 | Completed vs not completed | Current state of selected orders. Not completed includes active, awaiting, cancelled, rejected and expired orders. Actual-completion mode selects only Completed orders; use scheduled-date mode for unfinished comparisons. |
 | Customer numbers | New registrations use account creation dates in Singapore and ignore service/technician filters. Customers with bookings uses selected orders and the selected date basis; distinct per period and across the range, so bars/periods are not additive. |
-| Received customer ratings | Latest rating per reviewed visit, grouped by first feedback receipt in Singapore; historical missing receipt audits use the saved feedback timestamp and are counted explicitly. Service/technician filters apply using captured visit team membership. Shared team feedback counts once company-wide. Positive = 4�C5 stars, Neutral = 3, Negative = 1�C2; unrated visits are excluded. |
+| Received customer ratings | Latest rating per reviewed visit, grouped by first feedback receipt in Singapore; historical missing receipt audits use the saved feedback timestamp and are counted explicitly. Service/technician filters apply using captured visit team membership. Shared team feedback counts once company-wide. Positive = 4?C5 stars, Neutral = 3, Negative = 1?C2; unrated visits are excluded. |
 | Annual bundle visit breakdown | One row per matching plan with four separately linked quarterly visits. Completed, awaiting service and closed counts cover the whole plan, including labelled visits outside the report filters. Cancelled/rejected/expired visits are closed; missing records are not fabricated. Return work uses the original quarterly entitlement. |
 
 The additive `analytics.periods` response zero-fills the selected range, flags
@@ -379,7 +379,7 @@ My Rewards and Customer Rewards use the persisted points ledger. Future order co
 
 `BookingRewardSelection` is shared by the customer Review step, authenticated homepage booking dialog and Assistant review. It reads the current wallet/rules, caps whole redemption blocks against the first visit amount and shows the discount and net estimate before submission. Selection and rule version travel with the immutable pending booking request; Assistant drafts persist the selection and require a fresh review after editing it. The shared booking writer reserves the chosen points atomically with creation; annual plans and renewals discount visit 1 only. My Rewards retains balance, activity and release controls for existing reservations, and links to Book a service instead of adding points to an existing order. No schema migration is required.
 
-Creation-time rewards were verified through all three browser entry points using one isolated customer: a regular customer booking, an Assistant four-visit bundle and a homepage repair booking. MySQL confirmed one reservation on each selected order and none on annual visits 2�C4. Mobile Assistant review, invalid numeric input recovery, revised quote confirmation and My Rewards balances were checked; the synthetic account, six bookings, points and draft were removed afterward. Integration tests cover atomic failure, price caps, rule-version changes, cancellation, completion, idempotent retries and concurrent spending. Admin's existing Technician Performance page was verified read-only, without adding ratings.
+Creation-time rewards were verified through all three browser entry points using one isolated customer: a regular customer booking, an Assistant four-visit bundle and a homepage repair booking. MySQL confirmed one reservation on each selected order and none on annual visits 2?C4. Mobile Assistant review, invalid numeric input recovery, revised quote confirmation and My Rewards balances were checked; the synthetic account, six bookings, points and draft were removed afterward. Integration tests cover atomic failure, price caps, rule-version changes, cancellation, completion, idempotent retries and concurrent spending. Admin's existing Technician Performance page was verified read-only, without adding ratings.
 
 `components/performance.tsx` is shared by Admin, Customer and the technician Vite entry at `#performance`, with role-specific controls and server-side ownership checks. Each visit retains the technician and schedule captured at service start; legitimate returns and missing historical timing are explained without fabricated deductions. Date controls and rendered dates remain English and use Singapore business time.
 
@@ -391,7 +391,7 @@ available for compatibility. The applied service-end date range is explicit,
 unrated visits display **Not yet rated**, and the technician content uses a
 section heading beneath the portal's single page title.
 
-`PerformanceRatingTrend` adds an individual 1�C5-star line chart to
+`PerformanceRatingTrend` adds an individual 1?C5-star line chart to
 `/admin/performance` and `/technician/index.html#performance`. Admin selects a
 technician; the technician response remains scoped to that user's captured visits.
 The existing `/api/performance/admin` and `/api/performance/technician` responses add
@@ -433,3 +433,14 @@ selection and server-enforced ownership. For operations, check combined filters,
 Singapore date boundaries, reset/Back/Forward, safe stored outcomes, pagination and
 the Owner-only all-results CSV. Unit/DB coverage for these definitions complements,
 but does not replace, the browser checks; report the actual executed scope.
+
+
+## Customer email verification
+
+RegisterPage includes Send verification code, a six-digit code input and Verify
+Email & Create Account. It preserves the form and policy dialogs while mail is
+sending, shows accessible status/errors and a sixty-second resend countdown, and
+clears the challenge/code whenever the email changes. The API checks ownership in
+the account-creation transaction; a browser flag cannot bypass verification.
+See AZURE-DEPLOYMENT.md for migration 38, mail setup and endpoints.
+Existing sign-in accounts and staff invitations keep their current behavior.
