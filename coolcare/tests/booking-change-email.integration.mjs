@@ -1,3 +1,7 @@
+import { annualVisitSchedule } from '../server/customer/annual-bookings.mjs';
+import { enqueueAnnualExpiryReminders } from '../server/annual-expiry-reminders.mjs';
+import sharp from 'sharp';
+import { uploadServiceReceipt, listServiceReceipts } from '../server/service-receipts.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
@@ -214,6 +218,58 @@ test('real booking and return transactions create one committed notification per
     finally { await pool.query('DROP TRIGGER reject_reminder_mail'); }
     assert.equal((await mails(failed.id)).length, 0); assert.equal(await status(failed.id), 'Assigned');
     assert.equal(await enqueueTomorrowBookingReminders(pool, { now: failed.now }), 1);
+  });
+
+  await t.test('offline receipts retain ownership, immutable history and idempotent uploads without payment changes', async () => {
+    const b = await make('In Progress');
+    const [a] = await pool.execute("INSERT INTO assignment(booking_id,technician_id,assigned_by_admin_id,assignment_status) VALUES (?,?,?,'Accepted')", [b.id, tech.technician_id, actor.userId]);
+    const [w] = await pool.execute("INSERT INTO work_order(booking_id,assignment_id,appointment_date,appointment_time,current_status) VALUES (?,?,?,'09:00:00','In Progress')", [b.id, a.insertId, b.date + ' 09:00:00']);
+    const bytes = await sharp({ create: { width: 64, height: 64, channels: 3, background: '#fff' } }).png().toBuffer();
+    const payload = { requestId: randomUUID(), image: 'data:image/png;base64,' + bytes.toString('base64') }, technician = { id: tech.user_id, role: 'Technician' }, owner = { ...user, role: 'Customer' };
+    await assert.rejects(uploadServiceReceipt(pool, technician, w.insertId, payload), e => e.status === 409);
+    await pool.execute("UPDATE work_order SET current_status='Completed' WHERE job_id=?", [w.insertId]);
+    await pool.execute("UPDATE booking SET booking_status='Completed' WHERE booking_id=?", [b.id]);
+    const first = await uploadServiceReceipt(pool, technician, w.insertId, payload);
+    assert.equal((await uploadServiceReceipt(pool, technician, w.insertId, payload)).replayed, true);
+    assert.equal((await listServiceReceipts(pool, owner, b.id)).receipts.length, 1);
+    await assert.rejects(listServiceReceipts(pool, { id: 4294967295, role: 'Customer' }, b.id), e => e.status === 404);
+    await assert.rejects(uploadServiceReceipt(pool, { id: 4294967295, role: 'Technician' }, w.insertId, payload), e => e.status === 404);
+    const second = await uploadServiceReceipt(pool, technician, w.insertId, { ...payload, requestId: randomUUID() });
+    const list = await listServiceReceipts(pool, { id: actor.userId, role: 'Admin' }, b.id);
+    assert.deepEqual(list.receipts.map(r => r.receiptId), [second.receiptId, first.receiptId]);
+    const [[saved]] = await pool.execute('SELECT image_bytes FROM service_receipt WHERE receipt_id=?', [first.receiptId]);
+    assert.equal((await sharp(saved.image_bytes).metadata()).format, 'png');
+    assert.equal(await status(b.id), 'Completed');
+    const altered = await sharp({ create: { width: 64, height: 64, channels: 3, background: '#f00' } }).png().toBuffer();
+    await assert.rejects(uploadServiceReceipt(pool, technician, w.insertId, { ...payload, image: 'data:image/png;base64,' + altered.toString('base64') }), e => e.status === 409);
+  });
+
+  await t.test('annual expiry mail queues once per term and suppresses renewed plans before delivery', async () => {
+    const b = await make();
+    const [[address]] = await pool.execute('SELECT address_id FROM booking WHERE booking_id=?', [b.id]);
+    const [[pack]] = await pool.query("SELECT package_id FROM simple_package_catalog WHERE code='annual-cleaning'");
+    const [series] = await pool.execute("INSERT INTO annual_booking_series(customer_id,address_id,package_id,package_name,first_service_date,unit_count,total_amount,request_id) VALUES (?,?,?,'Annual Cleaning Bundle','2025-11-20',3,240,?)", [customer.customer_id, address.address_id, pack.package_id, randomUUID()]);
+    for (const visit of annualVisitSchedule('2025-11-20', 240)) {
+      const [order] = await pool.execute("INSERT INTO booking(customer_id,address_id,service_id,preferred_service_date,preferred_time_slot,slot_start,slot_end,booking_status,total_amount) VALUES (?,?,?,?,'09:00 - 11:00','09:00:00','11:00:00','Completed',60)", [customer.customer_id, address.address_id, service.service_id, visit.preferredDate]);
+      await pool.execute('INSERT INTO annual_booking_visit(booking_id,series_id,visit_number,scheduled_date,window_start,window_end) VALUES (?,?,?,?,?,?)', [order.insertId, series.insertId, visit.visitNumber, visit.preferredDate, visit.windowStart, visit.windowEnd]);
+    }
+    const now = new Date('2026-11-13T01:00:00Z');
+    assert.equal(await enqueueAnnualExpiryReminders(pool, { now: new Date('2026-11-12T01:00:00Z') }), 0);
+    const counts = await Promise.all([enqueueAnnualExpiryReminders(pool, { now }), enqueueAnnualExpiryReminders(pool, { now })]);
+    assert.equal(counts[0] + counts[1], 1);
+    assert.equal(await enqueueAnnualExpiryReminders(pool, { now }), 0);
+    const [[mail]] = await pool.execute("SELECT * FROM booking_email_outbox WHERE event_type='plan.expiring'");
+    assert.match(mail.body_text, /20 Nov 2026/); assert.match(mail.body_text, /My Plans/);
+    const [renewed] = await pool.execute("INSERT INTO annual_booking_series(customer_id,address_id,package_id,package_name,first_service_date,unit_count,total_amount,request_id) VALUES (?,?,?,'Renewed plan','2026-12-01',3,240,?)", [customer.customer_id, address.address_id, pack.package_id, randomUUID()]);
+    await pool.execute('INSERT INTO annual_plan_renewal(source_series_id,renewed_series_id) VALUES (?,?)', [series.insertId, renewed.insertId]);
+    let sends = 0;
+    const scoped = { execute: pool.execute.bind(pool), getConnection: async () => {
+      const c = await pool.getConnection(); return { beginTransaction: c.beginTransaction.bind(c), commit: c.commit.bind(c), rollback: c.rollback.bind(c), release: c.release.bind(c), execute: (sql, args) => sql.startsWith('SELECT * FROM booking_email_outbox WHERE delivery_mode=') ? c.execute(sql.replace('WHERE delivery_mode=?', "WHERE event_type='plan.expiring' AND delivery_mode=?"), args) : c.execute(sql, args) };
+    } };
+    assert.equal(await deliverPendingBookingEmails(scoped, { mode: 'local', now: () => now, transport: { sendMail: async () => { sends++; return { accepted: ['customer@example.test'] }; } } }), 0);
+    assert.equal(sends, 0);
+    const [[old]] = await pool.execute('SELECT delivery_mode,last_error FROM booking_email_outbox WHERE email_id=?', [mail.email_id]);
+    assert.equal(old.delivery_mode, 'disabled'); assert.equal(old.last_error, 'PLAN_REMINDER_SUPERSEDED');
   });
 
 });

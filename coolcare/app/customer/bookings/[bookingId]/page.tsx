@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ServiceReceipts } from '@/components/service-receipts';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, CalendarDays, Mail, RefreshCw } from 'lucide-react';
@@ -391,6 +392,7 @@ function BookingDetailsContent({ bookingId }: { bookingId: number }) {
                 Give service feedback
               </Button>}
             </div>
+            <ServiceReceipts key={bookingId} bookingId={Number(bookingId)} />
             {!canModify &&
               !['Completed', 'Rejected', 'Cancelled', 'Expired'].includes(
                 booking.status,
@@ -538,7 +540,7 @@ function BookingDetailsContent({ bookingId }: { bookingId: number }) {
               <DialogDescription>
                 {booking?.bookingReference}
                 {booking?.annualBundle
-                  ? ` · Visit ${booking.annualBundle.visitNumber} of 4. Changes apply only to this visit.`
+                  ? ` �� Visit ${booking.annualBundle.visitNumber} of 4. Changes apply only to this visit.`
                   : ''}
               </DialogDescription>
             </DialogHeader>
@@ -627,13 +629,13 @@ function BookingDetailsContent({ bookingId }: { bookingId: number }) {
                               slot as BookingInput['timeSlot'],
                             )
                               ? ''
-                              : ' — Fully booked'}
+                              : ' �� Fully booked'}
                           </NativeSelectOption>
                         ))}
                       </NativeSelect>
                       {slotAvailability.loading && (
                         <p className="text-xs text-muted-foreground">
-                          Checking team capacity…
+                          Checking team capacity��
                         </p>
                       )}
                       {slotAvailability.error && (
@@ -692,7 +694,7 @@ function BookingDetailsContent({ bookingId }: { bookingId: number }) {
                 }
               >
                 {busy
-                  ? 'Saving…'
+                  ? 'Saving��'
                   : pending
                     ? 'Retry same update'
                     : action === 'cancel'

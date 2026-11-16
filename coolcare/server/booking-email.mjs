@@ -1,3 +1,4 @@
+import { annualExpiryKey, loadAnnualExpiryPlan } from './annual-expiry-policy.mjs';
 import { bookingReminderKey, loadReminderBooking, reminderWindow } from './booking-reminder-policy.mjs';
 import { bookingReference } from './booking-reference.mjs';
 import nodemailer from 'nodemailer';
@@ -7,7 +8,7 @@ import { createAzureMailTransport } from './azure-email.mjs';
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 export function mailMode() { return ['smtp', 'disabled'].includes(process.env.MAIL_MODE) ? process.env.MAIL_MODE : 'local'; }
 
-export const bookingMailEventTypes = Object.freeze(['booking.assigned', 'booking.completed', 'booking.reminder', 'booking.cancelled', 'booking.rescheduled', 'booking.rejected', 'booking.rejection_updated', 'booking.rebooked', 'return.invited', 'return.requested', 'return.scheduled']);
+export const bookingMailEventTypes = Object.freeze(['booking.assigned', 'booking.completed', 'booking.reminder', 'plan.expiring', 'booking.cancelled', 'booking.rescheduled', 'booking.rejected', 'booking.rejection_updated', 'booking.rebooked', 'return.invited', 'return.requested', 'return.scheduled']);
 export function bookingAppointment(booking) {
   const value = booking.preferred_service_date;
   return { date: value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10), start: booking.slot_start, end: booking.slot_end, timeSlot: booking.preferred_time_slot };
@@ -109,7 +110,7 @@ export function buildAssignedBookingMail(booking, technicianName) {
   };
 }
 
-async function enqueueMail(connection,{eventKey,eventType,bookingId=null,invitationId=null,recipient,subject,text,html}) {
+export async function enqueueMail(connection,{eventKey,eventType,bookingId=null,invitationId=null,recipient,subject,text,html}) {
   const [[existing]] = await connection.execute('SELECT recipient,status,delivery_mode FROM booking_email_outbox WHERE event_key=?',[eventKey]);
   if(existing)return {status:existing.status==='Sent'?'sent':existing.delivery_mode==='disabled'?'disabled':'queued',mode:existing.delivery_mode,recipient:existing.recipient};
   const mode=mailMode();
@@ -185,6 +186,14 @@ export async function deliverPendingBookingEmails(pool, { transport, mode = mail
         const booking = window.enabled ? await loadReminderBooking(pool, row.booking_id, window.date) : null;
         if (!booking || bookingReminderKey(booking) !== row.event_key || booking.email !== row.recipient) {
           await pool.execute("UPDATE booking_email_outbox SET status='Pending',delivery_mode='disabled',locked_at=NULL,last_error='REMINDER_SUPERSEDED' WHERE email_id=?", [row.email_id]);
+          continue;
+        }
+      }
+      if (row.event_type === 'plan.expiring') {
+        const seriesId = /^plan\.expiring:(\d+):/.exec(row.event_key)?.[1];
+        const plan = seriesId ? await loadAnnualExpiryPlan(pool, Number(seriesId), now()) : null;
+        if (!plan || annualExpiryKey(plan) !== row.event_key || plan.email !== row.recipient) {
+          await pool.execute("UPDATE booking_email_outbox SET status='Pending',delivery_mode='disabled',locked_at=NULL,last_error='PLAN_REMINDER_SUPERSEDED' WHERE email_id=?", [row.email_id]);
           continue;
         }
       }

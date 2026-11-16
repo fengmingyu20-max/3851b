@@ -1,3 +1,4 @@
+import { registerServiceReceipts } from './service-receipts.mjs';
 import {registerServicePhotoMedia} from './service-photo-upload.mjs';
 import {registerSignatureMedia} from './report-signatures.mjs';
 import express from 'express';
@@ -179,6 +180,7 @@ export function createApp({
     next();
   });
   app.use('/api/technician/reports/:jobId/signatures/:signer', express.json({limit:'3mb'}));
+  app.use('/api/technician/jobs/:jobId/receipt',express.json({limit:'7mb'}));
   app.use('/api/technician/reports/:jobId/photos',express.json({limit:'8mb'}));
   app.use(express.json({ limit: '64kb' }));
   // In-memory sessions: use one App Service instance; restart requires signing in again.
@@ -241,6 +243,7 @@ export function createApp({
   });
   registerSignatureMedia(app,pool);
   registerServicePhotoMedia(app,pool);
+  registerServiceReceipts(app,pool);
   app.use('/api/public', createPublicRouter(pool,{secret,origin,registrationMailTransportFactory,passwordResetMailTransportFactory}));
   app.use('/api/customer', createCustomerRouter(pool));
   app.use('/api/technician', createTechnicianRouter(pool));

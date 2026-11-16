@@ -276,3 +276,16 @@ Tests capture transport calls against a disposable MySQL DB and send no real mai
 The API checks for tomorrow's assigned visits every minute and on startup, from 09:00 Singapore time. Existing Azure mail configuration is reused; no new environment variables or migration are needed. The outbox worker verifies the current date, status, recipient, time and address again before sending or retrying a reminder. Cancelled, changed or overdue reminder snapshots are retained as disabled (REMINDER_SUPERSEDED), rather than sent late. Admin order email history includes these reminders.
 
 Keep App Service running for this background task: in coolcare-web-3851, open Settings > Configuration > General settings and enable Always On if the plan supports it. Do not change the service plan automatically. Without Always On, App Service may unload an idle application after 20 minutes, so this in-process schedule cannot promise delivery while the application is stopped. On restart it catches up only while it is still the day before the appointment. See https://learn.microsoft.com/azure/app-service/configure-common for the platform setting.
+
+## Offline receipt upload (migration 40)
+
+After deploying this update, run once in App Service SSH:
+
+```sh
+cd /home/site/wwwroot
+node scripts/migrate-service-receipts.mjs --apply
+```
+
+This additive, repeat-safe migration creates service_receipt without changing existing orders, passwords, amounts or payment history. Runtime credentials need SELECT and INSERT on this table; local setup grants these in migrate-public.mjs. Normalized receipt PNGs are stored in MySQL rather than replaceable wwwroot, so App Service deployments do not remove them. Only authenticated owners, assigned technicians and Admin may read/download them. Uploads never confirm that payment was received.
+
+Annual-plan expiry email reminders reuse the existing outbox and API reminder worker. No additional migration or email settings are needed for these reminders. They run from 09:00 Singapore time during the last seven days before the current plan validity ends and stop after renewal or expiry. Keep Always On enabled as described above.

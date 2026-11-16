@@ -1,3 +1,4 @@
+import { enqueueAnnualExpiryReminders } from './annual-expiry-reminders.mjs';
 import { enqueueBookingLifecycleEmail, mailMode } from './booking-email.mjs';
 import { bookingReminderKey, loadReminderBooking, reminderWindow } from './booking-reminder-policy.mjs';
 
@@ -43,7 +44,7 @@ export function startBookingReminderWorker(pool) {
   let running = null, stopped = false;
   function tick() {
     if (running || stopped) return;
-    running = enqueueTomorrowBookingReminders(pool)
+    running = (async () => { await enqueueTomorrowBookingReminders(pool); await enqueueAnnualExpiryReminders(pool); })()
       .catch(error => console.error('Booking reminder worker:', error.code || error.name))
       .finally(() => { running = null; });
   }

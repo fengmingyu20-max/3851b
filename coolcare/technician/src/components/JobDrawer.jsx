@@ -1,3 +1,4 @@
+import { ServiceReceipts } from '@/components/service-receipts';
 import {VisitReports} from '@/components/visit-reports';
 import {formatInstantDateTime,formatSingaporeDateTime} from '@/lib/sg-time';
 import { parseChecks } from '../utils/reportChecks.js';
@@ -20,7 +21,7 @@ function InventoryUsed({ items = [] }) {
     <ul className="tech-detail-list">
       {items.map((item) => (
         <li key={item.transactionId}>
-          <strong>{item.partName}</strong>: {item.quantity} {item.stockUnit} ·{' '}
+          <strong>{item.partName}</strong>: {item.quantity} {item.stockUnit} ��{' '}
           {item.type}
           <small>Transaction time: {formatMoment(item.occurredAt)}</small>
           {item.remarks && <small>{item.remarks}</small>}
@@ -76,8 +77,8 @@ function History({ items, empty }) {
     items.map((report) => (
       <details key={report.reportId} className="tech-history">
         <summary>
-          {formatDate(report.date)} · Booking {report.bookingReference} · Work order WO-{String(report.jobId).padStart(4, '0')}
-          {report.packageName && ` · ${report.packageName}`}
+          {formatDate(report.date)} �� Booking {report.bookingReference} �� Work order WO-{String(report.jobId).padStart(4, '0')}
+          {report.packageName && ` �� ${report.packageName}`}
         </summary>
         <p className="cell-icon">
           <MapPin size={15} />
@@ -175,7 +176,7 @@ function WorkStatusActions({
           disabled={busy || startBlocked || completionBlocked || (externallyLocked && !uncertain)}
           onClick={advance}
         >
-          {busy ? 'Updating…' : uncertain ? 'Retry same update' : label}
+          {busy ? 'Updating��' : uncertain ? 'Retry same update' : label}
         </Button>
         <Button
           type="button"
@@ -259,8 +260,8 @@ function CleaningAssessment({
       </p>
       {current && (
         <p>
-          Last decision: <strong>{current.method}</strong> ·{' '}
-          {current.assessedBy} · {formatMoment(current.updatedAt)}
+          Last decision: <strong>{current.method}</strong> ��{' '}
+          {current.assessedBy} �� {formatMoment(current.updatedAt)}
         </p>
       )}
       {editable ? (
@@ -314,7 +315,7 @@ function CleaningAssessment({
                 }
               >
                 {busy
-                  ? 'Saving…'
+                  ? 'Saving��'
                   : uncertain
                     ? 'Retry same assessment'
                     : 'Save assessment'}
@@ -345,11 +346,11 @@ function CleaningAssessment({
           {history.map((item) => (
             <article key={item.version} className="tech-assessment-revision">
               <p>
-                <strong>Version {item.version}</strong> · {item.changedBy} ·{' '}
+                <strong>Version {item.version}</strong> �� {item.changedBy} ��{' '}
                 {formatMoment(item.changedAt)}
               </p>
               <p>
-                Method: {item.beforeMethod || 'Not recorded'} →{' '}
+                Method: {item.beforeMethod || 'Not recorded'} ��{' '}
                 {item.afterMethod}
               </p>
               <p>Previous note: {item.beforeNote || 'Not recorded'}</p>
@@ -444,7 +445,7 @@ function StockOut({
                 <option value="">Select a part</option>
                 {options.parts.map(p => <option key={p.part_id} value={p.part_id}
                   disabled={rows.some(other => other.key !== row.key && other.partId === String(p.part_id))}>
-                  {p.part_name} · {p.current_stock} {p.stock_unit} available
+                  {p.part_name} �� {p.current_stock} {p.stock_unit} available
                 </option>)}
               </NativeSelect>
             </label>
@@ -481,7 +482,7 @@ function StockOut({
         <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={busy || (!uncertain && !valid)}>
             {busy
-              ? 'Saving…'
+              ? 'Saving��'
               : uncertain
                 ? 'Retry same request'
                 : 'Confirm all parts'}
@@ -571,7 +572,7 @@ export default function JobDrawer({
           <p className="cell-icon">
             <Clock3 size={18} />
             {formatTime(job.time)}
-            {job.endTime&&` – ${formatTime(job.endTime)}`}
+            {job.endTime&&` �C ${formatTime(job.endTime)}`}
           </p>
           <p className="cell-icon">
             <Wrench size={18} />
@@ -585,7 +586,7 @@ export default function JobDrawer({
           </p>
           {job.reportPending && <p role="status" className="text-amber-800">Report pending. <a href="#reports">Complete this visit's report</a>{job.status==='Awaiting return arrangement'?' before the return visit can be dispatched.':'.'}</p>}
           <p>Last modified: {formatInstantDateTime(job.lastModified)}</p>
-          {job.canManage===false && <p className="tech-guidance">Team member — read only. The lead technician manages status, inventory and the service report.</p>}
+          {job.canManage===false && <p className="tech-guidance">Team member �� read only. The lead technician manages status, inventory and the service report.</p>}
           {job.team?.length>0 && <p>Team: {job.team.map(t=>t.fullName+(t.isLead?' (Lead)':'')).join(', ')}</p>}
           {job.canManage!==false && <WorkStatusActions
             job={job}
@@ -603,7 +604,7 @@ export default function JobDrawer({
             <MapPin size={18} />
             {job.address}
           </p>
-          <p>{job.acCount ?? '—'} AC unit(s) linked to this booking.</p>
+          <p>{job.acCount ?? '��'} AC unit(s) linked to this booking.</p>
           <h3>Reported problem / service notes</h3>
           <p>{job.reportedProblem || 'No additional details provided.'}</p>
           {error && (
@@ -618,7 +619,7 @@ export default function JobDrawer({
             </div>
           )}
           {!detail && !error && !mockMode && (
-            <output>Loading service history and inventory…</output>
+            <output>Loading service history and inventory��</output>
           )}
           {detail && (
             <>
@@ -656,7 +657,7 @@ export default function JobDrawer({
               {job.annualSeriesId && (
                 <section>
                   <h3>
-                    Annual Cleaning Bundle · visit {job.annualVisitNumber} of 4
+                    Annual Cleaning Bundle �� visit {job.annualVisitNumber} of 4
                   </h3>
                   <p>
                     This visit window starts {formatDate(job.annualWindowStart)} and ends
@@ -679,9 +680,9 @@ export default function JobDrawer({
                   <ul className="tech-detail-list">
                     {detail.packages.map((p) => (
                       <li key={p.subscriptionId}>
-                        <strong>{p.packageName}</strong> · {p.status}
+                        <strong>{p.packageName}</strong> �� {p.status}
                         <small>
-                          Recorded balance: {p.remainingVisits} visits ·{' '}
+                          Recorded balance: {p.remainingVisits} visits ��{' '}
                           {formatDate(p.startDate)} to {formatDate(p.endDate)}
                         </small>
                       </li>
@@ -695,6 +696,7 @@ export default function JobDrawer({
               )}
             </>
           )}
+          {!mockMode && job.bookingId && <ServiceReceipts key={job.bookingId} bookingId={job.bookingId} jobId={job.jobId} canUpload={job.status === 'Completed' && job.canManage !== false} onBusy={setLocked} />}
           {notice && <output className="tech-guidance">{notice}</output>}
           {options && job.canManage!==false && (
             <StockOut
